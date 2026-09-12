@@ -29,6 +29,16 @@ const ADMIN_NAV = [
   { to: "/app/admin/status", label: "Status", end: false },
 ];
 
+export function requireAdmin(role, profileLoading) {
+  if (profileLoading) {
+    return { status: "loading", redirectTo: null };
+  }
+  if (role !== "admin") {
+    return { status: "forbidden", redirectTo: "/app" };
+  }
+  return { status: "ok", redirectTo: null };
+}
+
 export function getNavItems(role) {
   if (role === "admin") {
     return [...MEMBER_NAV, ...ADMIN_NAV];

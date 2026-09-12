@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from "react-router-dom";
+import { AdminRoute } from "./components/AdminRoute.jsx";
 import { ErrorBoundary } from "./components/ErrorBoundary.jsx";
 import { RequireAuth } from "./components/RequireAuth.jsx";
 import { RequireGuest } from "./components/RequireGuest.jsx";
@@ -6,7 +7,9 @@ import { AppShell } from "./layout/AppShell.jsx";
 import { DashboardPage } from "./pages/DashboardPage.jsx";
 import { LandingPage } from "./pages/LandingPage.jsx";
 import { LoginPage } from "./pages/LoginPage.jsx";
+import { AdminPage } from "./pages/AdminPage.jsx";
 import { PlaceholderPage } from "./pages/PlaceholderPage.jsx";
+import { SettingsPage } from "./pages/SettingsPage.jsx";
 
 export default function App() {
   return (
@@ -39,31 +42,24 @@ export default function App() {
               />
             }
           />
-          <Route
-            path="settings"
-            element={
-              <PlaceholderPage
-                title="Settings"
-                body="Display name, preferred city, and notification preferences land in Phase 9."
-              />
-            }
-          />
+          <Route path="settings" element={<SettingsPage />} />
           <Route
             path="admin"
             element={
-              <PlaceholderPage
-                title="Admin"
-                body="Invite list and member roles land in Phase 8. This route is reserved so admin nav does not 404."
-              />
+              <AdminRoute>
+                <AdminPage />
+              </AdminRoute>
             }
           />
           <Route
             path="admin/status"
             element={
-              <PlaceholderPage
-                title="System status"
-                body="Ingest monitoring lands in Phase 13."
-              />
+              <AdminRoute>
+                <PlaceholderPage
+                  title="System status"
+                  body="Ingest monitoring lands in Phase 13."
+                />
+              </AdminRoute>
             }
           />
         </Route>

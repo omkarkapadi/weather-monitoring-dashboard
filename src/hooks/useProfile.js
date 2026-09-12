@@ -1,7 +1,19 @@
 import { useEffect, useState } from "react";
-import { doc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
+import { doc, onSnapshot, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
 import { getFirebaseDb } from "../firebase.js";
 import { normalizeEmail } from "../utils/accessControl.js";
+import { buildSafeProfileUpdate, validateSettings } from "../utils/cities.js";
+
+export async function applyProfileUpdate(writeUpdate, input) {
+  const check = validateSettings(input);
+  if (!check.ok) {
+    return check;
+  }
+
+  const payload = buildSafeProfileUpdate(input);
+  await writeUpdate(payload);
+  return { ok: true };
+}
 
 export function buildNewProfile(user, city = "Pune") {
   return {
@@ -52,9 +64,25 @@ export function useProfile(user) {
     );
   }, [user]);
 
+  async function updateProfile(input) {
+    if (!user) {
+      return { ok: false, message: "Sign in to save settings." };
+    }
+
+    try {
+      return await applyProfileUpdate(
+        (payload) => updateDoc(doc(getFirebaseDb(), "userProfiles", user.uid), payload),
+        input,
+      );
+    } catch {
+      return { ok: false, message: "Could not save settings." };
+    }
+  }
+
   return {
     profile,
     loading: Boolean(user) && profile === undefined,
     role: profile?.role || "member",
+    updateProfile,
   };
 }

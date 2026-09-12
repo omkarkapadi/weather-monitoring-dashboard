@@ -46,6 +46,11 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /ingestStatus/{cityId} {
+      allow read: if isApprovedUser();
+      allow write: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

@@ -10,6 +10,17 @@ export function isApproved(snapshotExists) {
   return snapshotExists === true;
 }
 
+export function validateApprovedEmailInput(email) {
+  const normalized = normalizeEmail(email);
+  if (!normalized) {
+    return { ok: false, message: "Enter an email address." };
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
+    return { ok: false, message: "Enter a valid email address." };
+  }
+  return { ok: true, email: normalized };
+}
+
 export async function ensureEmailApproved(getApprovedDoc, email) {
   const id = normalizeEmail(email);
   const notApproved = Object.assign(new Error("This email is not on the approved list."), {

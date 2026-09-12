@@ -4,6 +4,7 @@ import {
   isAdmin,
   isApproved,
   normalizeEmail,
+  validateApprovedEmailInput,
 } from "./accessControl.js";
 
 describe("normalizeEmail", () => {
@@ -26,6 +27,26 @@ describe("isApproved", () => {
   it("treats a missing approvedEmails doc as rejected", () => {
     expect(isApproved(true)).toBe(true);
     expect(isApproved(false)).toBe(false);
+  });
+});
+
+describe("validateApprovedEmailInput", () => {
+  it("rejects empty or incomplete emails", () => {
+    expect(validateApprovedEmailInput("")).toEqual({
+      ok: false,
+      message: "Enter an email address.",
+    });
+    expect(validateApprovedEmailInput("not-an-email")).toEqual({
+      ok: false,
+      message: "Enter a valid email address.",
+    });
+  });
+
+  it("normalizes a valid invite email", () => {
+    expect(validateApprovedEmailInput("  Teammate@College.edu ")).toEqual({
+      ok: true,
+      email: "teammate@college.edu",
+    });
   });
 });
 

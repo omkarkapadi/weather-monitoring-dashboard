@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getNavItems, requireAuth, requireGuest } from "./routes.js";
+import { getNavItems, requireAdmin, requireAuth, requireGuest } from "./routes.js";
 
 describe("requireAuth", () => {
   it("stays on the current screen while auth is loading", () => {
@@ -35,6 +35,29 @@ describe("requireGuest", () => {
   it("lets guests stay on public pages", () => {
     expect(requireGuest(null, false)).toEqual({
       status: "guest",
+      redirectTo: null,
+    });
+  });
+});
+
+describe("requireAdmin", () => {
+  it("waits while the profile is still loading", () => {
+    expect(requireAdmin("member", true)).toEqual({
+      status: "loading",
+      redirectTo: null,
+    });
+  });
+
+  it("sends members to /app", () => {
+    expect(requireAdmin("member", false)).toEqual({
+      status: "forbidden",
+      redirectTo: "/app",
+    });
+  });
+
+  it("lets admins through", () => {
+    expect(requireAdmin("admin", false)).toEqual({
+      status: "ok",
       redirectTo: null,
     });
   });

@@ -93,7 +93,7 @@ export function AppShell() {
           </button>
           <div>
             <p className="eyebrow">Internal dashboard</p>
-            <h1>{import.meta.env.VITE_WEATHER_CITY || "Pune"} weather desk</h1>
+            <h1>Weather desk</h1>
           </div>
           <div className="session">
             <p>{user?.email}</p>

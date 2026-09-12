@@ -1,6 +1,20 @@
 import { useEffect, useState } from "react";
-import { collection, limit, onSnapshot, orderBy, query } from "firebase/firestore";
+import { collection, limit, onSnapshot, orderBy, query, where } from "firebase/firestore";
 import { getFirebaseDb } from "../firebase.js";
+
+export function canQueryReadings(enabled, city) {
+  return Boolean(enabled && String(city || "").trim());
+}
+
+export function readingsErrorMessage(err) {
+  if (err?.code === "permission-denied") {
+    return "Firestore blocked this read. Deploy firestore.rules, then sign in again.";
+  }
+  if (err?.code === "failed-precondition") {
+    return "This city query needs a Firestore index. Deploy firestore.indexes.json, then refresh.";
+  }
+  return "Could not load weather history.";
+}
 
 function toDate(value) {
   if (!value) {
@@ -15,13 +29,13 @@ function toDate(value) {
   return new Date(value);
 }
 
-export function useReadings(enabled) {
+export function useReadings(enabled, city) {
   const [readings, setReadings] = useState([]);
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!enabled) {
+    if (!canQueryReadings(enabled, city)) {
       setReadings([]);
       setStatus("idle");
       setError("");
@@ -31,6 +45,7 @@ export function useReadings(enabled) {
     setStatus("loading");
     const readingsQuery = query(
       collection(getFirebaseDb(), "readings"),
+      where("city", "==", city),
       orderBy("fetchedAt", "desc"),
       limit(48),
     );
@@ -52,14 +67,10 @@ export function useReadings(enabled) {
       },
       (err) => {
         setStatus("error");
-        setError(
-          err.code === "permission-denied"
-            ? "Firestore blocked this read. Deploy firestore.rules, then sign in again."
-            : "Could not load weather history.",
-        );
+        setError(readingsErrorMessage(err));
       },
     );
-  }, [enabled]);
+  }, [enabled, city]);
 
   return { readings, status, error, latest: readings[0] ?? null };
 }

@@ -8,7 +8,13 @@ export function AuthProvider({ children }) {
   const auth = useAuth();
   const profileState = useProfile(auth.user);
   return (
-    <AuthContext.Provider value={{ ...auth, ...profileState }}>
+    <AuthContext.Provider
+      value={{
+        ...auth,
+        ...profileState,
+        loading: auth.loading || profileState.loading,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
