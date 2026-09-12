@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildSafeProfileUpdate,
   mergeCityOptions,
+  resolvePreferredCityInput,
   resolveSelectedCity,
   selectedCityOrDefault,
   validateSettings,
@@ -34,6 +35,16 @@ describe("resolveSelectedCity", () => {
 
   it("keeps a preferred city that ingest has not stored yet", () => {
     expect(resolveSelectedCity("Nashik", ["Pune"])).toBe("Nashik");
+  });
+});
+
+describe("resolvePreferredCityInput", () => {
+  it("prefers a newly typed city over the dropdown selection", () => {
+    expect(resolvePreferredCityInput("Pune", "  Nashik ")).toBe("Nashik");
+  });
+
+  it("keeps the dropdown city when the add field is blank", () => {
+    expect(resolvePreferredCityInput("Mumbai", " ")).toBe("Mumbai");
   });
 });
 

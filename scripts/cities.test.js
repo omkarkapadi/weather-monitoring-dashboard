@@ -17,6 +17,10 @@ describe("listDistinctCities", () => {
     expect(listDistinctCities([])).toEqual(["Pune"]);
     expect(listDistinctCities(null, "Delhi")).toEqual(["Delhi"]);
   });
+
+  it("ignores the fallback city when profiles already have preferred cities", () => {
+    expect(listDistinctCities([{ preferredCity: "Mumbai" }], "Pune")).toEqual(["Mumbai"]);
+  });
 });
 
 describe("cityDocId", () => {

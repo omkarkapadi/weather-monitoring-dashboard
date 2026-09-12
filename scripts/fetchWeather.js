@@ -50,6 +50,7 @@ export async function runIngest(env = process.env, fetchFn = fetch) {
     snapshot.docs.map((profile) => profile.data()),
     env.WEATHER_CITY || "Pune",
   );
+  console.log(`Fetching weather for: ${cities.join(", ")}`);
   const results = [];
 
   for (const city of cities) {

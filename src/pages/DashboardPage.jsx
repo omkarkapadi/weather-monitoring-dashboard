@@ -28,7 +28,7 @@ export function DashboardPage() {
   return (
     <section className="page-grid">
       <div className="city-toolbar">
-        <label htmlFor="dashboard-city">City</label>
+        <label htmlFor="dashboard-city">Tracked city</label>
         <select
           id="dashboard-city"
           value={selectedCity}
@@ -40,6 +40,11 @@ export function DashboardPage() {
             </option>
           ))}
         </select>
+        <p className="meta">
+          {ingest.cities.length > 1
+            ? "Every city currently stored in ingestStatus."
+            : "Save another preferred city in Settings, then run Fetch weather to add it here."}
+        </p>
       </div>
 
       {readingsState.status === "loading" ? (

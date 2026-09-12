@@ -26,4 +26,6 @@ jobs:
         env:
           GOOGLE_APPLICATION_CREDENTIALS_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
-          WEATHER_CITY: Pune
+          # Optional fallback only. scripts/fetchWeather.js reads distinct
+          # preferredCity values from userProfiles and fetches each one.
+          # Pune is used only when that collection has no cities yet.

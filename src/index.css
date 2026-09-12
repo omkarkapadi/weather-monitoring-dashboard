@@ -291,6 +291,11 @@ button:disabled {
   width: min(240px, 100%);
 }
 
+.city-toolbar .meta {
+  flex: 1 1 100%;
+  margin: 0;
+}
+
 .data-list {
   list-style: none;
   margin: 1rem 0 0;

@@ -210,4 +210,93 @@ describe("runIngest", () => {
     vi.doUnmock("firebase-admin/app");
     vi.doUnmock("firebase-admin/firestore");
   });
+
+  it("does not fetch WEATHER_CITY when userProfiles already has cities", async () => {
+    const add = vi.fn().mockResolvedValue({ id: "doc-3" });
+    vi.resetModules();
+    vi.doMock("firebase-admin/app", () => ({
+      cert: (value) => value,
+      initializeApp: vi.fn(() => ({ name: "admin-ignore-env" })),
+    }));
+    vi.doMock("firebase-admin/firestore", () => ({
+      getFirestore: () => ({
+        collection: (name) => {
+          if (name === "userProfiles") {
+            return {
+              get: async () => ({
+                docs: [{ data: () => ({ preferredCity: "Mumbai" }) }],
+              }),
+            };
+          }
+          if (name === "ingestStatus") {
+            return { doc: () => ({ set: vi.fn().mockResolvedValue() }) };
+          }
+          return { add };
+        },
+      }),
+    }));
+
+    const { runIngest: runIngestFresh } = await import("./fetchWeather.js");
+    const fetchFn = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ ...openWeatherPayload, name: "Mumbai" }),
+    });
+
+    const stored = await runIngestFresh(
+      {
+        GOOGLE_APPLICATION_CREDENTIALS_JSON: '{"client_email":"sa@demo.iam"}',
+        OPENWEATHER_API_KEY: "test-weather-key",
+        WEATHER_CITY: "Pune",
+      },
+      fetchFn,
+    );
+
+    expect(stored.map((reading) => reading.city)).toEqual(["Mumbai"]);
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+    expect(fetchFn.mock.calls[0][0]).toContain("q=Mumbai");
+    expect(fetchFn.mock.calls[0][0]).not.toContain("q=Pune");
+    vi.doUnmock("firebase-admin/app");
+    vi.doUnmock("firebase-admin/firestore");
+  });
+
+  it("falls back to Pune when userProfiles is empty and WEATHER_CITY is unset", async () => {
+    const add = vi.fn().mockResolvedValue({ id: "doc-4" });
+    vi.resetModules();
+    vi.doMock("firebase-admin/app", () => ({
+      cert: (value) => value,
+      initializeApp: vi.fn(() => ({ name: "admin-fallback" })),
+    }));
+    vi.doMock("firebase-admin/firestore", () => ({
+      getFirestore: () => ({
+        collection: (name) => {
+          if (name === "userProfiles") {
+            return { get: async () => ({ docs: [] }) };
+          }
+          if (name === "ingestStatus") {
+            return { doc: () => ({ set: vi.fn().mockResolvedValue() }) };
+          }
+          return { add };
+        },
+      }),
+    }));
+
+    const { runIngest: runIngestFresh } = await import("./fetchWeather.js");
+    const fetchFn = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => openWeatherPayload,
+    });
+
+    const stored = await runIngestFresh(
+      {
+        GOOGLE_APPLICATION_CREDENTIALS_JSON: '{"client_email":"sa@demo.iam"}',
+        OPENWEATHER_API_KEY: "test-weather-key",
+      },
+      fetchFn,
+    );
+
+    expect(stored.map((reading) => reading.city)).toEqual(["Pune"]);
+    expect(fetchFn.mock.calls[0][0]).toContain("q=Pune");
+    vi.doUnmock("firebase-admin/app");
+    vi.doUnmock("firebase-admin/firestore");
+  });
 });

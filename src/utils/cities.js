@@ -40,3 +40,7 @@ export function buildSafeProfileUpdate(input) {
     preferredCity: String(input?.preferredCity || "").trim(),
   };
 }
+
+export function resolvePreferredCityInput(selectedCity, addedCity) {
+  return String(addedCity || "").trim() || String(selectedCity || "").trim();
+}
