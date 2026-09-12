@@ -28,7 +28,8 @@ This stays on Firebase **Spark**. There are no Cloud Functions. The GitHub Actio
 | `scripts/parseWeather.js` | Turns OpenWeather JSON into a Firestore document. Tested. |
 | `scripts/fetchWeather.js` | Fetches weather and writes with the Admin SDK. |
 | `.github/workflows/fetch-weather.yml` | Runs the script on a schedule. |
-| `firestore.rules` | Signed-in users can read `readings`. Nobody writes from the client. |
+| `firestore.rules` | Invite list + role lock. Members cannot change their own `role`. |
+| `scripts/seedAdmin.js` | Approves `omkar.kapadi@mitwpu.edu.in` and promotes that profile to admin. |
 
 ## Local setup
 
@@ -42,7 +43,7 @@ npm test
 npm run dev
 ```
 
-Open http://localhost:5173. Create an account on the login screen, then sign in.
+Open http://localhost:5173. **Create account only works for emails in `approvedEmails`.** Seed the admin email first (below).
 
 The weather API key and the Firebase service account stay in **GitHub Actions secrets**. They are never put in `.env` or the React bundle.
 
@@ -53,6 +54,10 @@ npm install -g firebase-tools
 firebase login
 firebase use fir-5baf2
 firebase deploy --only firestore:rules
+
+# After you push this branch: GitHub → Actions → Seed admin → Run workflow
+# Then create your account with omkar.kapadi@mitwpu.edu.in
+# Run Seed admin a second time so your userProfiles role becomes admin.
 
 git add .
 git commit -m "feat: weather dashboard with Actions ingest and Auth"
@@ -72,14 +77,15 @@ The site will be `https://fir-5baf2.web.app`.
 
 ## Create a demo user
 
-- **In the app:** enter an email and a 6+ character password, click **Create account**.
-- **Or in Console:** Authentication → Users → Add user.
+- Seed `omkar.kapadi@mitwpu.edu.in` via **Actions → Seed admin**, then **Create account** in the app.
+- Teammates can sign up only after an admin adds their email (Phase 8). Until then, only the seed script can add emails (Admin SDK).
 
 ## Tests
 
 ```bash
 npm test
 npm run test:coverage
+npm run test:rules
 ```
 
 Helpers (`parseWeather`, `fetchAndStore`, Firebase config, mappers) are covered with Vitest. The ingest tests mock `fetch` and Firestore — they do not call OpenWeather or use a real service account.

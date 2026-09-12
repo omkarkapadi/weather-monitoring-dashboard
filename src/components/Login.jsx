@@ -36,8 +36,8 @@ export function Login({ onLogin, onRegister, error, pending }) {
       <p className="eyebrow">Cloud Computing PBL</p>
       <h1 id="login-title">Weather Monitor</h1>
       <p className="lede">
-        Sign in to view live and historical readings for Pune. New here? Create an
-        account — it stays in Firebase Authentication.
+        Sign in with an approved team email. Create account only works if an admin
+        has already added you to the invite list.
       </p>
       <form className="auth-form" onSubmit={handleLogin}>
         <label htmlFor="email">Email</label>

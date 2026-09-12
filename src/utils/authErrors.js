@@ -7,6 +7,7 @@ const MESSAGES = {
   "auth/invalid-email": "Enter a valid email address.",
   "auth/operation-not-allowed":
     "Email/password sign-in is not enabled yet. Turn it on in Firebase Console → Authentication.",
+  "app/not-approved": "This email is not on the approved list.",
 };
 
 export function mapAuthError(error) {

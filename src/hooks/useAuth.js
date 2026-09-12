@@ -5,7 +5,9 @@ import {
   signInWithEmailAndPassword,
   signOut,
 } from "firebase/auth";
-import { getFirebaseAuth } from "../firebase.js";
+import { doc, getDoc } from "firebase/firestore";
+import { getFirebaseAuth, getFirebaseDb } from "../firebase.js";
+import { ensureEmailApproved, normalizeEmail } from "../utils/accessControl.js";
 import { mapAuthError } from "../utils/authErrors.js";
 
 export function useAuth() {
@@ -40,7 +42,17 @@ export function useAuth() {
     login: (email, password) =>
       run(() => signInWithEmailAndPassword(getFirebaseAuth(), email, password)),
     register: (email, password) =>
-      run(() => createUserWithEmailAndPassword(getFirebaseAuth(), email, password)),
+      run(async () => {
+        await ensureEmailApproved(
+          (id) => getDoc(doc(getFirebaseDb(), "approvedEmails", id)),
+          email,
+        );
+        return createUserWithEmailAndPassword(
+          getFirebaseAuth(),
+          normalizeEmail(email),
+          password,
+        );
+      }),
     logout: () => run(() => signOut(getFirebaseAuth())),
   };
 }
