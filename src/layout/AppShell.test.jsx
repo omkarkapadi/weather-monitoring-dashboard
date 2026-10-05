@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -131,12 +131,25 @@ describe("AppShell mobile drawer", () => {
     expect(screen.getByText("Dashboard content")).toBeInTheDocument();
   });
 
+  it("shows a bottom tab bar for the four primary pages", () => {
+    renderShell();
+
+    const tabs = screen.getByRole("navigation", { name: /primary/i });
+    expect(tabs).toHaveClass("workspace-tabs");
+    expect(tabs).toHaveTextContent("Dashboard");
+    expect(tabs).toHaveTextContent("Map");
+    expect(tabs).toHaveTextContent("History");
+    expect(tabs).toHaveTextContent("Settings");
+  });
+
   it("closes the drawer when a nav link is tapped", async () => {
     const user = userEvent.setup();
     renderShell();
 
     await user.click(screen.getByRole("button", { name: /toggle navigation/i }));
-    await user.click(screen.getByRole("link", { name: /history/i }));
+    await user.click(
+      within(document.getElementById("sidebar-nav")).getByRole("link", { name: /history/i }),
+    );
 
     expect(screen.queryByRole("button", { name: /close navigation/i })).not.toBeInTheDocument();
     expect(screen.getByText("History content")).toBeInTheDocument();

@@ -15,6 +15,7 @@ import { resolveHomeLocation } from "../utils/profileUpdate.js";
 import { toActiveLocation } from "../utils/savedPlaces.js";
 import { toSelectedLocation } from "../utils/selectedLocation.js";
 import { evaluateAlerts } from "../weather/alerts.js";
+import { showAlertNotifications } from "../weather/notifyAlerts.js";
 import { buildChartPoints, buildDailyView, buildHeroView, buildHourlyView, rateUsAqi } from "../weather/display.js";
 import { defaultUnits } from "../weather/units.js";
 
@@ -92,11 +93,43 @@ export function DashboardPage() {
     () => (weather.forecast ? buildChartPoints(weather.forecast.hourly, units, nowIso) : []),
     [weather.forecast, units, nowIso],
   );
-  const alerts = evaluateAlerts({
-    temperatureC: weather.forecast?.current?.temperature,
-    weatherCode: weather.forecast?.current?.weatherCode,
-    usAqi: weather.air?.usAqi,
-  });
+  const alerts = useMemo(
+    () =>
+      evaluateAlerts({
+        temperatureC: weather.forecast?.current?.temperature,
+        weatherCode: weather.forecast?.current?.weatherCode,
+        usAqi: weather.air?.usAqi,
+      }),
+    [
+      weather.forecast?.current?.temperature,
+      weather.forecast?.current?.weatherCode,
+      weather.air?.usAqi,
+    ],
+  );
+  const notifiedAlertIds = useRef(new Set());
+  const lastNotifiedLocationId = useRef(location.locationId);
+
+  useEffect(() => {
+    if (lastNotifiedLocationId.current !== location.locationId) {
+      notifiedAlertIds.current = new Set();
+      lastNotifiedLocationId.current = location.locationId;
+    }
+    if (!profile?.notificationsEnabled) {
+      return;
+    }
+    if (typeof document !== "undefined" && document.visibilityState !== "visible") {
+      return;
+    }
+    if (typeof Notification === "undefined" || Notification.permission !== "granted") {
+      return;
+    }
+    notifiedAlertIds.current = showAlertNotifications(alerts, {
+      notifiedIds: notifiedAlertIds.current,
+      notify: (message) => {
+        new Notification("Weather desk", { body: message });
+      },
+    });
+  }, [alerts, profile?.notificationsEnabled, location.locationId]);
 
   const notice = saved.error || toast.message;
   const noticeTone = saved.error ? "error" : toast.tone;
@@ -137,6 +170,12 @@ export function DashboardPage() {
             {alert.message}
           </p>
         ))}
+        {alerts.length > 0 ? (
+          <p className="meta">
+            These alerts are computed in this app from temperature, weather codes, and AQI. They are
+            not an official warning feed, and they only appear while the tab is open.
+          </p>
+        ) : null}
 
         {weather.error && weather.forecast ? (
           <p className="banner banner-error" role="alert">

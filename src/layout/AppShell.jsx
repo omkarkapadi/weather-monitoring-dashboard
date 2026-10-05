@@ -3,7 +3,7 @@ import { NavLink, Outlet } from "react-router-dom";
 import { AttributionFooter } from "../components/ui/AttributionFooter.jsx";
 import { ThemeToggle } from "../components/ui/ThemeToggle.jsx";
 import { useAuthContext } from "../context/AuthContext.jsx";
-import { getNavItems } from "../utils/routes.js";
+import { getNavItems, getTabItems } from "../utils/routes.js";
 import { applyWorkspaceOverflowLock, shellCompactMediaQuery } from "./viewport.js";
 
 function readCompactShell() {
@@ -19,6 +19,7 @@ export function AppShell() {
   const [isMobile, setIsMobile] = useState(readCompactShell);
   const navRole = role || "member";
   const navItems = getNavItems(navRole);
+  const tabItems = getTabItems();
   const drawerInert = isMobile && !menuOpen;
 
   useEffect(() => applyWorkspaceOverflowLock(), []);
@@ -125,6 +126,20 @@ export function AppShell() {
         </main>
         <AttributionFooter />
       </div>
+      {isMobile ? (
+        <nav className="workspace-tabs" aria-label="Primary">
+          {tabItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              className={({ isActive }) => (isActive ? "workspace-tab is-active" : "workspace-tab")}
+            >
+              {item.label}
+            </NavLink>
+          ))}
+        </nav>
+      ) : null}
     </div>
   );
 }

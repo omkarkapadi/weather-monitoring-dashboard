@@ -130,7 +130,18 @@ export function SettingsPage() {
               id="notifications-enabled"
               type="checkbox"
               checked={notificationsEnabled}
-              onChange={(event) => setNotificationsEnabled(event.target.checked)}
+              onChange={async (event) => {
+                const enabled = event.target.checked;
+                if (
+                  enabled &&
+                  typeof Notification !== "undefined" &&
+                  Notification.permission === "default" &&
+                  typeof Notification.requestPermission === "function"
+                ) {
+                  await Notification.requestPermission();
+                }
+                setNotificationsEnabled(enabled);
+              }}
             />
             Notifications
           </label>

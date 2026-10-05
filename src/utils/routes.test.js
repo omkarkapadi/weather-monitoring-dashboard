@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getNavItems, requireAdmin, requireApprovedApp, requireAuth, requireGuest } from "./routes.js";
+import { getDrawerItems, getNavItems, getTabItems, requireAdmin, requireApprovedApp, requireAuth, requireGuest } from "./routes.js";
 
 describe("requireAuth", () => {
   it("stays on the current screen while auth is loading", () => {
@@ -131,5 +131,22 @@ describe("getNavItems", () => {
     const paths = getNavItems("admin").map((item) => item.to);
     expect(paths).toContain("/app/admin");
     expect(paths).toContain("/app/admin/status");
+  });
+
+  it("keeps the four primary tabs for every role", () => {
+    expect(getTabItems().map((item) => item.to)).toEqual([
+      "/app",
+      "/app/map",
+      "/app/history",
+      "/app/settings",
+    ]);
+  });
+
+  it("puts admin tools in the drawer, not the tab bar", () => {
+    expect(getDrawerItems("member")).toEqual([]);
+    expect(getDrawerItems("admin").map((item) => item.to)).toEqual([
+      "/app/admin",
+      "/app/admin/status",
+    ]);
   });
 });

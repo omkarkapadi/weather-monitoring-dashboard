@@ -77,3 +77,11 @@ export function getNavItems(role) {
   }
   return [...MEMBER_NAV];
 }
+
+export function getTabItems() {
+  return [...MEMBER_NAV];
+}
+
+export function getDrawerItems(role) {
+  return role === "admin" ? [...ADMIN_NAV] : [];
+}

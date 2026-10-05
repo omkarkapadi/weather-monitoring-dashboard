@@ -13,5 +13,9 @@ describe("LandingPage", () => {
 
     expect(screen.getByRole("heading", { name: /weather monitoring dashboard/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /sign in/i })).toHaveAttribute("href", "/login");
+    expect(screen.getByRole("heading", { name: /on-demand forecast/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /live map/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /history export/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /invite-only access/i })).toBeInTheDocument();
   });
 });

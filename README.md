@@ -1,33 +1,46 @@
 # Weather Monitoring Dashboard
 
-Cloud Computing PBL: a login-gated React dashboard that shows live and historical weather for Pune. Readings are fetched on a schedule and stored in Firestore.
+Cloud Computing PBL: invite-only React weather desk for any pin on the map. The browser fetches Open-Meteo on demand. Firebase Auth and Firestore (Spark) protect the app, profiles, and saved places — not the public weather APIs.
+
+Live demo (after hosting deploy): `https://fir-5baf2.web.app`
 
 ## Architecture
 
 ```
-OpenWeatherMap
-  → GitHub Actions (cron every 15 minutes, or manual Run workflow)
-  → scripts/fetchWeather.js (firebase-admin write)
-  → Firestore `readings` collection
-  → React app (Vite) after Firebase Authentication
+Browser (Vite + React)
+  → Open-Meteo forecast / air / archive   (no API key, CC BY 4.0)
+  → RainViewer radar tiles                (map page only)
+  → OpenStreetMap via Leaflet
+  → Firebase Auth + Firestore             (profiles, savedPlaces, invite list)
   → Firebase Hosting
 ```
 
-This stays on Firebase **Spark**. There are no Cloud Functions. The GitHub Action is the scheduled compute. The Admin SDK writes bypass security rules; the browser can only **read** after login.
+This stays on Firebase **Spark**. There are no Cloud Functions.
+
+Weather is **on-demand**, not scheduled. Opening Dashboard, Map, or History triggers a client fetch. Results are cached in `sessionStorage` (10 min forecast, 5 min radar, 60 min archive). An optional GitHub Action still exists for an older `readings` ingest path; the live desk does not wait on it.
+
+Access control is separate from weather data:
+
+| Public | Protected |
+| --- | --- |
+| Open-Meteo, RainViewer, OSM tiles | `/app/*` routes after Auth |
+| Landing page | `approvedEmails` invite list |
+| | `userProfiles` and `savedPlaces` (max 20) |
+
+Client alerts (heat, cold, storm, AQI) are computed in the browser. They are **not** an official warning feed and only notify while the tab is open (Notification API, once per alert id).
 
 ## What each important file does
 
 | File | Why it exists |
 | --- | --- |
 | `src/firebase.js` | Reads `VITE_*` env vars and starts the Firebase web SDK. |
-| `src/components/Login.jsx` | Email/password form with Log in and Create account. |
-| `src/hooks/useAuth.js` | Wraps Firebase Auth (`onAuthStateChanged`, sign-in, register, sign-out). |
-| `src/hooks/useReadings.js` | Live Firestore query: last 48 readings, newest first. |
-| `src/components/CurrentWeather.jsx` | Card for the latest reading. |
-| `src/components/WeatherChart.jsx` | Recharts temperature trend. |
-| `scripts/parseWeather.js` | Turns OpenWeather JSON into a Firestore document. Tested. |
-| `scripts/fetchWeather.js` | Fetches weather and writes with the Admin SDK. |
-| `.github/workflows/fetch-weather.yml` | Runs the script on a schedule. |
+| `src/pages/LandingPage.jsx` | Public hero, four features, and a mock preview. |
+| `src/pages/DashboardPage.jsx` | Pin, current/hourly/daily, AQI, saved places, alerts. |
+| `src/pages/MapPage.jsx` | Leaflet explorer + RainViewer playback + save place. |
+| `src/pages/HistoryPage.jsx` | Archive range for home + CSV of shown rows. |
+| `src/layout/AppShell.jsx` | Sidebar on desktop; bottom tabs + drawer on compact. |
+| `src/weather/openMeteo.js` | Forecast + air quality client. |
+| `src/weather/notifyAlerts.js` | Once-per-id Notification helper. |
 | `firestore.rules` | Invite list + role lock. Members cannot change their own `role`. |
 | `scripts/seedAdmin.js` | Approves `omkar.kapadi@mitwpu.edu.in` and promotes that profile to admin. |
 
@@ -45,7 +58,7 @@ npm run dev
 
 Open http://localhost:5173. **Create account only works for emails in `approvedEmails`.** Seed the admin email first (below).
 
-The weather API key and the Firebase service account stay in **GitHub Actions secrets**. They are never put in `.env` or the React bundle.
+Do not put a weather API key or a Firebase service account in `.env` or the React bundle. Open-Meteo and RainViewer are keyless. Admin scripts use GitHub Actions secrets.
 
 ## Commands you run (not the coding agent)
 
@@ -58,13 +71,9 @@ firebase deploy --only firestore:rules
 # After you push this branch: GitHub → Actions → Seed admin → Run workflow
 # Then create your account with omkar.kapadi@mitwpu.edu.in
 # Run Seed admin a second time so your userProfiles role becomes admin.
-
-git add .
-git commit -m "feat: weather dashboard with Actions ingest and Auth"
-git push
 ```
 
-Then on GitHub: **Actions → Fetch weather → Run workflow**. That writes the first reading. The dashboard updates live via `onSnapshot`.
+Firestore rules on Hosting do not update until you deploy them. The rules emulator needs **JDK 21**.
 
 Later, for a public demo URL:
 
@@ -78,7 +87,7 @@ The site will be `https://fir-5baf2.web.app`.
 ## Create a demo user
 
 - Seed `omkar.kapadi@mitwpu.edu.in` via **Actions → Seed admin**, then **Create account** in the app.
-- Teammates can sign up only after an admin adds their email (Phase 8). Until then, only the seed script can add emails (Admin SDK).
+- Teammates can sign up only after an admin adds their email. Until then, only the seed script can add emails (Admin SDK).
 
 ## Tests
 
@@ -88,4 +97,6 @@ npm run test:coverage
 npm run test:rules
 ```
 
-Helpers (`parseWeather`, `fetchAndStore`, Firebase config, mappers) are covered with Vitest. The ingest tests mock `fetch` and Firestore — they do not call OpenWeather or use a real service account.
+Vitest covers mappers, weather helpers, pages, and rules (rules need the emulator + JDK 21). Ingest tests mock `fetch` and Firestore.
+
+Viva talking points: [docs/viva-notes.md](docs/viva-notes.md).
