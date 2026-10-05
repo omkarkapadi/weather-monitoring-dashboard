@@ -3,8 +3,8 @@ import { useAuthContext } from "../context/AuthContext.jsx";
 import { requireGuest } from "../utils/routes.js";
 
 export function RequireGuest({ children }) {
-  const { user, loading } = useAuthContext();
-  const decision = requireGuest(user, loading);
+  const { user, loading, approved } = useAuthContext();
+  const decision = requireGuest(user, loading, approved);
 
   if (decision.status === "loading") {
     return (

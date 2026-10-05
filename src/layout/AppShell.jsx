@@ -1,17 +1,30 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
+import { AttributionFooter } from "../components/ui/AttributionFooter.jsx";
+import { ThemeToggle } from "../components/ui/ThemeToggle.jsx";
 import { useAuthContext } from "../context/AuthContext.jsx";
 import { getNavItems } from "../utils/routes.js";
+import { applyWorkspaceOverflowLock, shellCompactMediaQuery } from "./viewport.js";
+
+function readCompactShell() {
+  if (typeof window.matchMedia !== "function") {
+    return false;
+  }
+  return window.matchMedia(shellCompactMediaQuery()).matches;
+}
 
 export function AppShell() {
   const { user, logout, role } = useAuthContext();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(readCompactShell);
   const navRole = role || "member";
   const navItems = getNavItems(navRole);
+  const drawerInert = isMobile && !menuOpen;
+
+  useEffect(() => applyWorkspaceOverflowLock(), []);
 
   useEffect(() => {
-    const media = window.matchMedia("(max-width: 800px)");
+    const media = window.matchMedia(shellCompactMediaQuery());
     const update = () => {
       const mobile = media.matches;
       setIsMobile(mobile);
@@ -58,7 +71,8 @@ export function AppShell() {
       <aside
         id="sidebar-nav"
         className={`sidebar ${menuOpen ? "is-open" : ""}`}
-        aria-hidden={isMobile && !menuOpen}
+        aria-hidden={drawerInert}
+        inert={drawerInert || undefined}
       >
         <div className="brand">
           <p className="eyebrow">Weather Monitor</p>
@@ -96,7 +110,10 @@ export function AppShell() {
             <h1>Weather desk</h1>
           </div>
           <div className="session">
-            <p>{user?.email}</p>
+            <ThemeToggle />
+            <p className="session-email" title={user?.email}>
+              {user?.email}
+            </p>
             <span className="role-pill">{navRole}</span>
             <button type="button" className="secondary" onClick={logout}>
               Log out
@@ -106,6 +123,7 @@ export function AppShell() {
         <main className="workspace-content">
           <Outlet />
         </main>
+        <AttributionFooter />
       </div>
     </div>
   );

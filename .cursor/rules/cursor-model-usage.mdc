@@ -1,0 +1,27 @@
+---
+description: Auto-run ECC reviewers on Cursor-included models only
+alwaysApply: true
+---
+
+# Cursor model usage
+
+This project uses ECC, but we are in **Cursor**, not Claude Code.
+
+## Reviewers still auto-run
+
+Keep the ECC loop: after writing or changing code, launch the usual reviewers (`code-reviewer`, and language reviewers when they apply). Do TDD and planning the same way.
+
+## Always use the included / free pool
+
+When launching **any** Task/subagent, set `model` to one of:
+
+- `cursor-grok-4.6-high-fast`
+- `composer-2.5-fast`
+
+Never omit `model`. Never use `inherit` — Cursor remapped inherit to Claude Sonnet and billed Other Models.
+
+Never pass Claude, Sonnet, Opus, Haiku, GPT, or Gemini unless the user explicitly names that model.
+
+Ignore ECC frontmatter `model: sonnet` / `opus` / `haiku`.
+
+`npm test` is local Node. It does not use any LLM.

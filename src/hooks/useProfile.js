@@ -2,7 +2,10 @@ import { useEffect, useState } from "react";
 import { doc, onSnapshot, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
 import { getFirebaseDb } from "../firebase.js";
 import { normalizeEmail } from "../utils/accessControl.js";
-import { buildSafeProfileUpdate, validateSettings } from "../utils/cities.js";
+import { firestoreErrorMessage } from "../utils/firestoreError.js";
+import { buildSafeProfileUpdate, validateSettings } from "../utils/profileUpdate.js";
+import { DEFAULT_HOME } from "../weather/locationId.js";
+import { defaultUnits } from "../weather/units.js";
 
 export async function applyProfileUpdate(writeUpdate, input) {
   const check = validateSettings(input);
@@ -11,37 +14,54 @@ export async function applyProfileUpdate(writeUpdate, input) {
   }
 
   const payload = buildSafeProfileUpdate(input);
-  await writeUpdate(payload);
-  return { ok: true };
+  try {
+    await writeUpdate(payload);
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      message: firestoreErrorMessage(error, "Could not save settings."),
+    };
+  }
 }
 
-export function buildNewProfile(user, city = "Pune") {
+export function buildNewProfile(user) {
   return {
     email: normalizeEmail(user.email),
     displayName: user.displayName || "",
     role: "member",
-    preferredCity: city,
+    preferredLocation: { ...DEFAULT_HOME },
+    units: defaultUnits(),
     notificationsEnabled: false,
   };
 }
 
-export function useProfile(user) {
+export function useProfile(user, approved) {
   const [profile, setProfile] = useState(undefined);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
-    if (!user) {
-      setProfile(null);
+    if (!user || approved !== true) {
+      setProfile(user && approved === undefined ? undefined : null);
+      setError(false);
       return undefined;
     }
 
     const ref = doc(getFirebaseDb(), "userProfiles", user.uid);
     let creating = false;
+    let cancelled = false;
+    setProfile(undefined);
+    setError(false);
 
-    return onSnapshot(
+    const unsubscribe = onSnapshot(
       ref,
       async (snap) => {
+        if (cancelled) {
+          return;
+        }
         if (snap.exists()) {
           setProfile({ id: snap.id, ...snap.data() });
+          setError(false);
           return;
         }
         if (creating) {
@@ -50,38 +70,44 @@ export function useProfile(user) {
         creating = true;
         try {
           await setDoc(ref, {
-            ...buildNewProfile(user, import.meta.env.VITE_WEATHER_CITY || "Pune"),
+            ...buildNewProfile(user),
             createdAt: serverTimestamp(),
           });
         } catch {
           creating = false;
-          setProfile(null);
+          if (!cancelled) {
+            setError(true);
+          }
         }
       },
       () => {
-        setProfile(null);
+        if (!cancelled) {
+          setError(true);
+        }
       },
     );
-  }, [user]);
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [user, approved]);
 
   async function updateProfile(input) {
     if (!user) {
       return { ok: false, message: "Sign in to save settings." };
     }
 
-    try {
-      return await applyProfileUpdate(
-        (payload) => updateDoc(doc(getFirebaseDb(), "userProfiles", user.uid), payload),
-        input,
-      );
-    } catch {
-      return { ok: false, message: "Could not save settings." };
-    }
+    return applyProfileUpdate(
+      (payload) => updateDoc(doc(getFirebaseDb(), "userProfiles", user.uid), payload),
+      input,
+    );
   }
 
   return {
     profile,
-    loading: Boolean(user) && profile === undefined,
+    error,
+    loading: Boolean(user) && approved === true && profile === undefined && !error,
     role: profile?.role || "member",
     updateProfile,
   };

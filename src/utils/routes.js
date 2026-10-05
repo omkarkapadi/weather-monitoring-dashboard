@@ -8,11 +8,42 @@ export function requireAuth(user, loading) {
   return { status: "authenticated", redirectTo: null };
 }
 
-export function requireGuest(user, loading) {
-  if (loading || user === undefined) {
+export function requireApprovedApp({
+  user,
+  authLoading,
+  approved,
+  profile,
+  profileLoading,
+  accessError,
+}) {
+  if (
+    authLoading ||
+    user === undefined ||
+    profileLoading ||
+    (user && approved === undefined && !accessError)
+  ) {
     return { status: "loading", redirectTo: null };
   }
-  if (user) {
+  if (!user) {
+    return { status: "unauthenticated", redirectTo: "/login" };
+  }
+  if (accessError) {
+    return { status: "error", redirectTo: null };
+  }
+  if (approved !== true) {
+    return { status: "forbidden", redirectTo: "/not-approved" };
+  }
+  if (!profile) {
+    return { status: "forbidden", redirectTo: "/not-approved" };
+  }
+  return { status: "ok", redirectTo: null };
+}
+
+export function requireGuest(user, loading, approved) {
+  if (loading || user === undefined || (user && approved === undefined)) {
+    return { status: "loading", redirectTo: null };
+  }
+  if (user && approved) {
     return { status: "authenticated", redirectTo: "/app" };
   }
   return { status: "guest", redirectTo: null };

@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { DEFAULT_HOME } from "../weather/locationId.js";
 import { SettingsPage } from "./SettingsPage.jsx";
 
 const updateProfile = vi.fn().mockResolvedValue({ ok: true });
@@ -11,7 +12,9 @@ vi.mock("../context/AuthContext.jsx", () => ({
     profile: {
       email: "omkar.kapadi@mitwpu.edu.in",
       displayName: "Omkar",
-      preferredCity: "Pune",
+      preferredLocation: DEFAULT_HOME,
+      units: { temperature: "C", wind: "kmh", clock: "12h" },
+      notificationsEnabled: false,
       role: "admin",
       createdAt: { toDate: () => new Date("2026-09-12T09:00:00.000Z") },
     },
@@ -20,39 +23,54 @@ vi.mock("../context/AuthContext.jsx", () => ({
   }),
 }));
 
-vi.mock("../hooks/useIngestCities.js", () => ({
-  useIngestCities: () => ({ cities: ["Mumbai", "Pune"], status: "ready" }),
+vi.mock("../components/PlacePicker.jsx", () => ({
+  PlacePicker: ({ location, onPinChange }) => (
+    <div>
+      <div data-testid="place-picker">
+        Map at {location.lat}, {location.lon}
+      </div>
+      <button
+        type="button"
+        onClick={() =>
+          onPinChange({
+            locationId: "18.51,73.86",
+            label: "Kasba Peth, Pune",
+            lat: 18.51,
+            lon: 73.86,
+          })
+        }
+      >
+        Drop pin
+      </button>
+    </div>
+  ),
 }));
 
 describe("SettingsPage", () => {
-  it("lists tracked cities and saves a dropdown selection", async () => {
+  it("saves home location, units, and notifications without a city dropdown", async () => {
     const user = userEvent.setup();
     render(<SettingsPage />);
 
     expect(screen.getByText("omkar.kapadi@mitwpu.edu.in")).toBeInTheDocument();
     expect(screen.getByText("admin")).toBeInTheDocument();
-    const citySelect = screen.getByLabelText(/preferred city/i);
-    expect(citySelect.tagName).toBe("SELECT");
-    expect(screen.getByRole("option", { name: "Mumbai" })).toBeInTheDocument();
-    await user.selectOptions(citySelect, "Mumbai");
+    expect(screen.getByTestId("place-picker")).toHaveTextContent("18.52");
+    expect(screen.queryByLabelText(/preferred city/i)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /drop pin/i }));
+    await user.selectOptions(screen.getByLabelText(/temperature/i), "F");
+    await user.click(screen.getByLabelText(/notifications/i));
     await user.click(screen.getByRole("button", { name: /save settings/i }));
 
     expect(updateProfile).toHaveBeenCalledWith({
       displayName: "Omkar",
-      preferredCity: "Mumbai",
-    });
-  });
-
-  it("saves a newly typed city that is not in ingestStatus yet", async () => {
-    const user = userEvent.setup();
-    render(<SettingsPage />);
-
-    await user.type(screen.getByLabelText(/add a new city/i), "Nashik");
-    await user.click(screen.getByRole("button", { name: /save settings/i }));
-
-    expect(updateProfile).toHaveBeenLastCalledWith({
-      displayName: "Omkar",
-      preferredCity: "Nashik",
+      preferredLocation: {
+        locationId: "18.51,73.86",
+        label: "Kasba Peth, Pune",
+        lat: 18.51,
+        lon: 73.86,
+      },
+      units: { temperature: "F", wind: "kmh", clock: "12h" },
+      notificationsEnabled: true,
     });
   });
 });

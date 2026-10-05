@@ -1,82 +1,181 @@
-import { useEffect, useState } from "react";
-import { CurrentWeather } from "../components/CurrentWeather.jsx";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { PlacePicker } from "../components/PlacePicker.jsx";
 import { Skeleton } from "../components/Skeleton.jsx";
-import { WeatherChart } from "../components/WeatherChart.jsx";
+import { EmptyState } from "../components/ui/EmptyState.jsx";
+import { Toast } from "../components/ui/Toast.jsx";
+import { AirQualityCard } from "../components/weather/AirQualityCard.jsx";
+import { DailyForecast } from "../components/weather/DailyForecast.jsx";
+import { HourlyStrip } from "../components/weather/HourlyStrip.jsx";
+import { SavedPlaceCards } from "../components/weather/SavedPlaceCards.jsx";
+import { WeatherHero } from "../components/weather/WeatherHero.jsx";
 import { useAuthContext } from "../context/AuthContext.jsx";
-import { useIngestCities } from "../hooks/useIngestCities.js";
-import { useReadings } from "../hooks/useReadings.js";
-import { mergeCityOptions, resolveSelectedCity, selectedCityOrDefault } from "../utils/cities.js";
+import { usePlaceSummaries, useWeather } from "../hooks/useWeather.js";
+import { useSavedPlaces } from "../hooks/useSavedPlaces.js";
+import { resolveHomeLocation } from "../utils/profileUpdate.js";
+import { toActiveLocation } from "../utils/savedPlaces.js";
+import { toSelectedLocation } from "../utils/selectedLocation.js";
+import { evaluateAlerts } from "../weather/alerts.js";
+import { buildChartPoints, buildDailyView, buildHeroView, buildHourlyView, rateUsAqi } from "../weather/display.js";
+import { defaultUnits } from "../weather/units.js";
+
+const WeatherTrendChart = lazy(() => import("../components/weather/WeatherTrendChart.jsx"));
 
 export function DashboardPage() {
-  const { user, profile } = useAuthContext();
-  const ingest = useIngestCities(Boolean(user));
-  const preferred = selectedCityOrDefault(profile?.preferredCity);
-  const [selectedCity, setSelectedCity] = useState(() =>
-    resolveSelectedCity(profile?.preferredCity, ingest.cities),
+  const { user, profile, updateProfile } = useAuthContext();
+  const [location, setLocation] = useState(() => resolveHomeLocation(profile));
+  const [toast, setToast] = useState({ message: "", tone: "info" });
+  const userMovedPinRef = useRef(false);
+  const hydratedHomeRef = useRef(false);
+  const units = profile?.units || defaultUnits();
+  const weather = useWeather(location, { enabled: Boolean(user) });
+  const saved = useSavedPlaces(user?.uid);
+  const placeTemps = usePlaceSummaries(saved.places, { units });
+  const home = resolveHomeLocation(profile);
+
+  useEffect(() => {
+    if (!profile || userMovedPinRef.current || hydratedHomeRef.current) {
+      return;
+    }
+    setLocation(resolveHomeLocation(profile));
+    hydratedHomeRef.current = true;
+  }, [profile]);
+
+  function selectLocation(next) {
+    const selected = toSelectedLocation(next, location);
+    if (!selected) {
+      return;
+    }
+    userMovedPinRef.current = true;
+    setLocation(selected);
+  }
+
+  async function setAsHome() {
+    const result = await updateProfile({
+      displayName: profile?.displayName || "",
+      preferredLocation: location,
+      units,
+      notificationsEnabled: Boolean(profile?.notificationsEnabled),
+    });
+    if (!result?.ok) {
+      setToast({ message: result?.message || "Could not save settings.", tone: "error" });
+      return;
+    }
+    setToast({ message: "Home location saved.", tone: "info" });
+  }
+
+  async function savePlace() {
+    const result = await saved.addPlace(location);
+    if (!result?.ok) {
+      setToast({ message: result?.message || "Could not save that place.", tone: "error" });
+      return;
+    }
+    setToast({ message: "Place saved.", tone: "info" });
+  }
+
+  const nowIso = weather.forecast?.current?.time;
+  const hero = useMemo(
+    () =>
+      weather.forecast
+        ? buildHeroView({ location, forecast: weather.forecast, air: weather.air, units })
+        : null,
+    [location, weather.forecast, weather.air, units],
   );
-  const cityOptions = mergeCityOptions(preferred, [...ingest.cities, selectedCity]);
-  const readingsState = useReadings(Boolean(user), selectedCity);
+  const hours = useMemo(
+    () => (weather.forecast ? buildHourlyView(weather.forecast.hourly, units, nowIso, 24) : []),
+    [weather.forecast, units, nowIso],
+  );
+  const days = useMemo(
+    () => (weather.forecast ? buildDailyView(weather.forecast.daily, nowIso, units) : []),
+    [weather.forecast, nowIso, units],
+  );
+  const chartPoints = useMemo(
+    () => (weather.forecast ? buildChartPoints(weather.forecast.hourly, units, nowIso) : []),
+    [weather.forecast, units, nowIso],
+  );
+  const alerts = evaluateAlerts({
+    temperatureC: weather.forecast?.current?.temperature,
+    weatherCode: weather.forecast?.current?.weatherCode,
+    usAqi: weather.air?.usAqi,
+  });
 
-  useEffect(() => {
-    setSelectedCity(resolveSelectedCity(profile?.preferredCity, ingest.cities));
-  }, [profile?.preferredCity]);
-
-  useEffect(() => {
-    setSelectedCity((current) => resolveSelectedCity(current, ingest.cities, current));
-  }, [ingest.cities]);
+  const notice = saved.error || toast.message;
+  const noticeTone = saved.error ? "error" : toast.tone;
 
   return (
-    <section className="page-grid">
-      <div className="city-toolbar">
-        <label htmlFor="dashboard-city">Tracked city</label>
-        <select
-          id="dashboard-city"
-          value={selectedCity}
-          onChange={(event) => setSelectedCity(event.target.value)}
-        >
-          {cityOptions.map((city) => (
-            <option key={city} value={city}>
-              {city}
-            </option>
-          ))}
-        </select>
-        <p className="meta">
-          {ingest.cities.length > 1
-            ? "Every city currently stored in ingestStatus."
-            : "Save another preferred city in Settings, then run Fetch weather to add it here."}
-        </p>
+    <section className="weather-board">
+      <div className="weather-board-place">
+        <article className="panel-card place-card">
+          <p className="eyebrow">Selected place</p>
+          <h2>{location.label}</h2>
+          <p className="meta">
+            {Number(location.lat).toFixed(2)}, {Number(location.lon).toFixed(2)}. Search recenters
+            the map; the pin is the place we use.
+          </p>
+          <PlacePicker location={location} onPinChange={selectLocation} />
+          <div className="place-actions">
+            <button type="button" onClick={setAsHome}>
+              Set as home
+            </button>
+            <button type="button" className="secondary" onClick={savePlace}>
+              Save place
+            </button>
+          </div>
+          <Toast message={notice} tone={noticeTone} />
+        </article>
+        <SavedPlaceCards
+          places={saved.places}
+          summaries={placeTemps.summaries}
+          loading={placeTemps.status === "loading"}
+          homeId={home.locationId}
+          onSelect={(place) => selectLocation(toActiveLocation(place))}
+        />
       </div>
 
-      {readingsState.status === "loading" ? (
-        <div className="card-grid">
-          <article className="panel-card">
-            <Skeleton lines={4} />
-          </article>
-          <article className="panel-card">
-            <Skeleton lines={5} />
-          </article>
-        </div>
-      ) : null}
+      <div className="weather-board-now">
+        {alerts.map((alert) => (
+          <p key={alert.id} className="banner banner-error" role="alert">
+            {alert.message}
+          </p>
+        ))}
 
-      {readingsState.status === "empty" ? (
-        <p className="banner">
-          Signed in, but Firestore has no {selectedCity} readings yet. Run the Fetch weather
-          GitHub Action once, then this page will update live.
-        </p>
-      ) : null}
+        {weather.error && weather.forecast ? (
+          <p className="banner banner-error" role="alert">
+            {weather.error}
+          </p>
+        ) : null}
 
-      {readingsState.status === "error" ? (
-        <p className="banner banner-error" role="alert">
-          {readingsState.error}
-        </p>
-      ) : null}
+        {weather.status === "idle" || weather.status === "loading" ? (
+          <div className="weather-board-grid">
+            <article className="ui-card">
+              <Skeleton lines={5} />
+            </article>
+            <article className="ui-card">
+              <Skeleton lines={4} />
+            </article>
+          </div>
+        ) : null}
 
-      {readingsState.status === "ready" || readingsState.status === "empty" ? (
-        <div className="card-grid">
-          <CurrentWeather reading={readingsState.latest} />
-          <WeatherChart readings={readingsState.readings} />
-        </div>
-      ) : null}
+        {weather.status === "error" && !weather.forecast ? (
+          <EmptyState title="Could not load weather" body={weather.error} />
+        ) : null}
+
+        {weather.status === "ready" && weather.locationId === location.locationId && hero ? (
+          <>
+            <WeatherHero hero={hero} />
+            <HourlyStrip hours={hours} />
+            <Suspense fallback={<article className="ui-card"><Skeleton lines={4} /></article>}>
+              <WeatherTrendChart points={chartPoints} />
+            </Suspense>
+            <DailyForecast days={days} />
+            <AirQualityCard
+              air={{
+                ...weather.air,
+                rating: rateUsAqi(weather.air?.usAqi),
+              }}
+            />
+          </>
+        ) : null}
+      </div>
     </section>
   );
 }

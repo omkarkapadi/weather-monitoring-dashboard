@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { PlacePicker } from "../components/PlacePicker.jsx";
+import { Toast } from "../components/ui/Toast.jsx";
 import { useAuthContext } from "../context/AuthContext.jsx";
-import { useIngestCities } from "../hooks/useIngestCities.js";
-import { mergeCityOptions, resolvePreferredCityInput, validateSettings } from "../utils/cities.js";
+import { resolveHomeLocation, validateSettings } from "../utils/profileUpdate.js";
+import { defaultUnits } from "../weather/units.js";
 
 function formatCreatedAt(value) {
   if (!value) {
@@ -16,24 +18,31 @@ function formatCreatedAt(value) {
 
 export function SettingsPage() {
   const { user, profile, role, updateProfile } = useAuthContext();
-  const ingest = useIngestCities(Boolean(user));
   const [displayName, setDisplayName] = useState(profile?.displayName || "");
-  const [preferredCity, setPreferredCity] = useState(profile?.preferredCity || "Pune");
-  const [addedCity, setAddedCity] = useState("");
+  const [location, setLocation] = useState(() => resolveHomeLocation(profile));
+  const [units, setUnits] = useState(profile?.units || defaultUnits());
+  const [notificationsEnabled, setNotificationsEnabled] = useState(
+    Boolean(profile?.notificationsEnabled),
+  );
   const [message, setMessage] = useState("");
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
-  const cityOptions = mergeCityOptions(preferredCity, ingest.cities);
+  const hydratedRef = useRef(false);
 
   useEffect(() => {
-    setDisplayName(profile?.displayName || "");
-    setPreferredCity(profile?.preferredCity || "Pune");
-  }, [profile?.displayName, profile?.preferredCity]);
+    if (!profile || hydratedRef.current) {
+      return;
+    }
+    setDisplayName(profile.displayName || "");
+    setLocation(resolveHomeLocation(profile));
+    setUnits(profile.units || defaultUnits());
+    setNotificationsEnabled(Boolean(profile.notificationsEnabled));
+    hydratedRef.current = true;
+  }, [profile]);
 
   async function handleSubmit(event) {
     event.preventDefault();
-    const nextCity = resolvePreferredCityInput(preferredCity, addedCity);
-    const check = validateSettings({ preferredCity: nextCity });
+    const check = validateSettings({ preferredLocation: location });
     if (!check.ok) {
       setSaved(false);
       setMessage(check.message);
@@ -41,15 +50,18 @@ export function SettingsPage() {
     }
 
     setSaving(true);
-    const result = await updateProfile({ displayName, preferredCity: nextCity });
+    const result = await updateProfile({
+      displayName,
+      preferredLocation: location,
+      units,
+      notificationsEnabled,
+    });
     setSaving(false);
     if (!result.ok) {
       setSaved(false);
       setMessage(result.message);
       return;
     }
-    setPreferredCity(nextCity);
-    setAddedCity("");
     setMessage("");
     setSaved(true);
   }
@@ -59,7 +71,9 @@ export function SettingsPage() {
       <article className="panel-card settings-card">
         <p className="eyebrow">Account</p>
         <h2>Settings</h2>
-        <p className="lede">Change how your name and default city appear. Role stays admin-managed.</p>
+        <p className="lede">
+          Drop a pin for home, then set units and notifications. Role stays admin-managed.
+        </p>
         <dl className="readonly-fields">
           <div>
             <dt>Email</dt>
@@ -82,41 +96,45 @@ export function SettingsPage() {
             onChange={(event) => setDisplayName(event.target.value)}
             autoComplete="name"
           />
-          <label htmlFor="preferred-city">Preferred city</label>
+          <PlacePicker location={location} onPinChange={setLocation} />
+          <label htmlFor="temperature-unit">Temperature</label>
           <select
-            id="preferred-city"
-            value={preferredCity}
-            onChange={(event) => setPreferredCity(event.target.value)}
+            id="temperature-unit"
+            value={units.temperature}
+            onChange={(event) => setUnits((current) => ({ ...current, temperature: event.target.value }))}
           >
-            {cityOptions.map((city) => (
-              <option key={city} value={city}>
-                {city}
-              </option>
-            ))}
+            <option value="C">Celsius</option>
+            <option value="F">Fahrenheit</option>
           </select>
-          <p className="meta">
-            {ingest.cities.length > 0
-              ? "These are the cities currently tracked in ingestStatus."
-              : "No other tracked cities yet. Add one below, save, then run Fetch weather."}
-          </p>
-          <label htmlFor="new-city">Add a new city</label>
-          <input
-            id="new-city"
-            value={addedCity}
-            onChange={(event) => setAddedCity(event.target.value)}
-            autoComplete="off"
-            placeholder="Optional — e.g. Nashik"
-          />
-          {ingest.status === "error" ? (
-            <p className="banner banner-error" role="alert">
-              Could not load tracked cities. Deploy firestore.rules, then refresh.
-            </p>
-          ) : null}
-          {message ? (
-            <p className="banner banner-error" role="alert">
-              {message}
-            </p>
-          ) : null}
+          <label htmlFor="wind-unit">Wind speed</label>
+          <select
+            id="wind-unit"
+            value={units.wind}
+            onChange={(event) => setUnits((current) => ({ ...current, wind: event.target.value }))}
+          >
+            <option value="kmh">km/h</option>
+            <option value="ms">m/s</option>
+            <option value="mph">mph</option>
+          </select>
+          <label htmlFor="clock-unit">Clock</label>
+          <select
+            id="clock-unit"
+            value={units.clock}
+            onChange={(event) => setUnits((current) => ({ ...current, clock: event.target.value }))}
+          >
+            <option value="12h">12-hour</option>
+            <option value="24h">24-hour</option>
+          </select>
+          <label className="checkbox-field" htmlFor="notifications-enabled">
+            <input
+              id="notifications-enabled"
+              type="checkbox"
+              checked={notificationsEnabled}
+              onChange={(event) => setNotificationsEnabled(event.target.checked)}
+            />
+            Notifications
+          </label>
+          <Toast message={message} tone="error" />
           {saved ? <p className="banner">Settings saved.</p> : null}
           <button type="submit" disabled={saving}>
             {saving ? "Saving…" : "Save settings"}

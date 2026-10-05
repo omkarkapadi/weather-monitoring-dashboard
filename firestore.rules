@@ -9,15 +9,24 @@ service cloud.firestore {
       return request.auth.token.email;
     }
 
-    function isAdmin() {
+    function isApprovedUser() {
       return signedIn()
+        && exists(/databases/$(database)/documents/approvedEmails/$(authEmail()));
+    }
+
+    function isAdmin() {
+      return isApprovedUser()
         && exists(/databases/$(database)/documents/userProfiles/$(request.auth.uid))
         && get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.role == "admin";
     }
 
-    function isApprovedUser() {
-      return signedIn()
-        && exists(/databases/$(database)/documents/approvedEmails/$(authEmail()));
+    function validCoords() {
+      return request.resource.data.lat is number
+        && request.resource.data.lon is number
+        && request.resource.data.lat >= -90
+        && request.resource.data.lat <= 90
+        && request.resource.data.lon >= -180
+        && request.resource.data.lon <= 180;
     }
 
     match /approvedEmails/{email} {
@@ -29,11 +38,40 @@ service cloud.firestore {
     match /userProfiles/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
       allow create: if request.auth.uid == uid
-        && request.resource.data.role == "member";
+        && isApprovedUser()
+        && request.resource.data.role == "member"
+        && request.resource.data.keys().hasOnly([
+          "email",
+          "displayName",
+          "role",
+          "preferredLocation",
+          "units",
+          "notificationsEnabled",
+          "createdAt"
+        ]);
       allow update: if isAdmin()
         || (request.auth.uid == uid
-            && request.resource.data.role == resource.data.role);
+            && isApprovedUser()
+            && request.resource.data.role == resource.data.role
+            && request.resource.data.email == resource.data.email
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              "displayName",
+              "preferredLocation",
+              "units",
+              "notificationsEnabled",
+              "preferredCity"
+            ]));
       allow delete: if isAdmin();
+
+      match /savedPlaces/{placeId} {
+        allow read: if request.auth.uid == uid && isApprovedUser();
+        allow create: if request.auth.uid == uid
+          && isApprovedUser()
+          && validCoords()
+          && request.resource.data.label is string
+          && request.resource.data.keys().hasOnly(["label", "lat", "lon", "addedAt"]);
+        allow update, delete: if request.auth.uid == uid && isApprovedUser();
+      }
     }
 
     match /readings/{readingId} {

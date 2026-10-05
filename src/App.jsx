@@ -9,6 +9,7 @@ import { LandingPage } from "./pages/LandingPage.jsx";
 import { LoginPage } from "./pages/LoginPage.jsx";
 import { AdminPage } from "./pages/AdminPage.jsx";
 import { PlaceholderPage } from "./pages/PlaceholderPage.jsx";
+import { NotApprovedPage } from "./pages/NotApprovedPage.jsx";
 import { SettingsPage } from "./pages/SettingsPage.jsx";
 
 export default function App() {
@@ -24,6 +25,7 @@ export default function App() {
             </RequireGuest>
           }
         />
+        <Route path="/not-approved" element={<NotApprovedPage />} />
         <Route
           path="/app"
           element={
