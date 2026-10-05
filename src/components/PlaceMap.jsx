@@ -4,7 +4,10 @@ import "leaflet/dist/leaflet.css";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
+import { isValidCoords } from "../weather/locationId.js";
 import { CITY_MAP_ZOOM, nextMapZoom, shouldResetCityZoom } from "../weather/mapView.js";
+
+const EMPTY_PLACES = [];
 
 const icon = L.icon({
   iconUrl: markerIcon,
@@ -14,12 +17,25 @@ const icon = L.icon({
   iconAnchor: [12, 41],
 });
 
-export default function PlaceMap({ lat, lon, onPinChange }) {
+export default function PlaceMap({
+  lat,
+  lon,
+  onPinChange,
+  savedPlaces = EMPTY_PLACES,
+  radarTileUrl = "",
+  radarOpacity = 0.7,
+  variant = "picker",
+  onSavedPlaceClick,
+}) {
   const nodeRef = useRef(null);
   const mapRef = useRef(null);
   const markerRef = useRef(null);
+  const radarLayerRef = useRef(null);
+  const savedLayerRef = useRef(null);
   const onPinChangeRef = useRef(onPinChange);
+  const onSavedPlaceClickRef = useRef(onSavedPlaceClick);
   onPinChangeRef.current = onPinChange;
+  onSavedPlaceClickRef.current = onSavedPlaceClick;
 
   useEffect(() => {
     if (!nodeRef.current || mapRef.current) {
@@ -50,8 +66,68 @@ export default function PlaceMap({ lat, lon, onPinChange }) {
       map.remove();
       mapRef.current = null;
       markerRef.current = null;
+      radarLayerRef.current = null;
+      savedLayerRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) {
+      return;
+    }
+    if (radarLayerRef.current) {
+      map.removeLayer(radarLayerRef.current);
+      radarLayerRef.current = null;
+    }
+    if (!radarTileUrl) {
+      return;
+    }
+    const layer = L.tileLayer(radarTileUrl, {
+      opacity: radarOpacity,
+      className: "radar-tiles",
+      maxNativeZoom: 7,
+      maxZoom: 18,
+    });
+    layer.addTo(map);
+    radarLayerRef.current = layer;
+  }, [radarTileUrl]);
+
+  useEffect(() => {
+    radarLayerRef.current?.setOpacity(radarOpacity);
+  }, [radarOpacity]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) {
+      return;
+    }
+    if (savedLayerRef.current) {
+      savedLayerRef.current.remove();
+      savedLayerRef.current = null;
+    }
+    const group = L.layerGroup();
+    savedPlaces.forEach((place) => {
+      if (!isValidCoords(place.lat, place.lon)) {
+        return;
+      }
+      const marker = L.circleMarker([place.lat, place.lon], {
+        radius: 7,
+        color: "#7ad4c3",
+        fillColor: "#7ad4c3",
+        fillOpacity: 0.85,
+        weight: 2,
+      });
+      marker.bindTooltip(place.label || "Saved place");
+      marker.on("click", (event) => {
+        L.DomEvent.stopPropagation(event);
+        onSavedPlaceClickRef.current?.(place);
+      });
+      marker.addTo(group);
+    });
+    group.addTo(map);
+    savedLayerRef.current = group;
+  }, [savedPlaces]);
 
   useEffect(() => {
     if (!mapRef.current || !markerRef.current) {
@@ -65,5 +141,12 @@ export default function PlaceMap({ lat, lon, onPinChange }) {
     map.invalidateSize();
   }, [lat, lon]);
 
-  return <div ref={nodeRef} className="place-map" aria-label="Map showing selected location" aria-describedby="place-map-help" />;
+  return (
+    <div
+      ref={nodeRef}
+      className={`place-map${variant === "explorer" ? " place-map-explorer" : ""}`}
+      aria-label="Map showing selected location"
+      aria-describedby="place-map-help"
+    />
+  );
 }

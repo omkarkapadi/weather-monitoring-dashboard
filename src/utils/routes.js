@@ -51,6 +51,7 @@ export function requireGuest(user, loading, approved) {
 
 const MEMBER_NAV = [
   { to: "/app", label: "Dashboard", end: true },
+  { to: "/app/map", label: "Map", end: false },
   { to: "/app/history", label: "History", end: false },
   { to: "/app/settings", label: "Settings", end: false },
 ];

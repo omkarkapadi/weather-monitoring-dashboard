@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildArchiveView,
   buildDailyView,
   buildHeroView,
   buildHourlyView,
@@ -131,5 +132,26 @@ describe("buildHourlyView / buildDailyView", () => {
     expect(days[0].high).toBe("33°");
     expect(days[0].low).toBe("20°");
     expect(days[1].heading).toMatch(/Tue/i);
+  });
+});
+
+describe("buildArchiveView", () => {
+  it("formats archive highs, lows, and rainfall for the table and chart", () => {
+    const rows = buildArchiveView(
+      [
+        { date: "2026-09-27", high: 31.2, low: 22.1, precipitation: 0 },
+        { date: "2026-09-28", high: 32, low: 21, precipitation: 4.6 },
+      ],
+      units,
+    );
+    expect(rows[1]).toMatchObject({
+      date: "2026-09-28",
+      high: "32°",
+      low: "21°",
+      precipitation: "4.6 mm",
+      highValue: 32,
+      lowValue: 21,
+      precipValue: 4.6,
+    });
   });
 });

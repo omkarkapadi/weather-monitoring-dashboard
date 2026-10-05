@@ -157,6 +157,18 @@ export function buildDailyView(daily, todayIso, units) {
   });
 }
 
+export function buildArchiveView(days, units) {
+  return (days || []).map((day) => ({
+    date: day.date,
+    high: formatTemp(day.high, units?.temperature),
+    low: formatTemp(day.low, units?.temperature),
+    precipitation: Number.isFinite(day.precipitation) ? `${day.precipitation.toFixed(1)} mm` : "—",
+    highValue: Number.isFinite(day.high) ? convertTemperature(day.high, units?.temperature) : null,
+    lowValue: Number.isFinite(day.low) ? convertTemperature(day.low, units?.temperature) : null,
+    precipValue: Number.isFinite(day.precipitation) ? day.precipitation : null,
+  }));
+}
+
 export function buildChartPoints(hourly, units, nowIso) {
   return buildHourlyView(hourly, units, nowIso, 48).map((row) => ({
     time: row.timeLabel,

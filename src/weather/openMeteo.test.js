@@ -6,6 +6,7 @@ import {
   buildGeocodeUrl,
   formatGeocodeResult,
   normalizeAirQuality,
+  normalizeArchive,
   normalizeForecast,
 } from "./openMeteo.js";
 
@@ -130,6 +131,28 @@ describe("normalizeForecast", () => {
     expect(weather.daily[0].high).toBe(34);
     expect(weather.daily[0].low).toBe(24);
     expect(weather.daily[0].precipitationProbability).toBe(15);
+  });
+});
+
+describe("normalizeArchive", () => {
+  it("maps daily high, low, and precipitation for the selected range", () => {
+    expect(
+      normalizeArchive({
+        timezone: "Asia/Kolkata",
+        daily: {
+          time: ["2026-09-27", "2026-09-28"],
+          temperature_2m_max: [31.2, 32],
+          temperature_2m_min: [22.1, 21],
+          precipitation_sum: [0, 4.6],
+        },
+      }),
+    ).toEqual({
+      timezone: "Asia/Kolkata",
+      days: [
+        { date: "2026-09-27", high: 31.2, low: 22.1, precipitation: 0 },
+        { date: "2026-09-28", high: 32, low: 21, precipitation: 4.6 },
+      ],
+    });
   });
 });
 

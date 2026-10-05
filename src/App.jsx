@@ -1,8 +1,10 @@
+import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { AdminRoute } from "./components/AdminRoute.jsx";
 import { ErrorBoundary } from "./components/ErrorBoundary.jsx";
 import { RequireAuth } from "./components/RequireAuth.jsx";
 import { RequireGuest } from "./components/RequireGuest.jsx";
+import { Skeleton } from "./components/Skeleton.jsx";
 import { AppShell } from "./layout/AppShell.jsx";
 import { DashboardPage } from "./pages/DashboardPage.jsx";
 import { LandingPage } from "./pages/LandingPage.jsx";
@@ -11,6 +13,9 @@ import { AdminPage } from "./pages/AdminPage.jsx";
 import { PlaceholderPage } from "./pages/PlaceholderPage.jsx";
 import { NotApprovedPage } from "./pages/NotApprovedPage.jsx";
 import { SettingsPage } from "./pages/SettingsPage.jsx";
+
+const MapPage = lazy(() => import("./pages/MapPage.jsx"));
+const HistoryPage = lazy(() => import("./pages/HistoryPage.jsx"));
 
 export default function App() {
   return (
@@ -36,12 +41,19 @@ export default function App() {
         >
           <Route index element={<DashboardPage />} />
           <Route
+            path="map"
+            element={
+              <Suspense fallback={<article className="panel-card"><Skeleton lines={4} /></article>}>
+                <MapPage />
+              </Suspense>
+            }
+          />
+          <Route
             path="history"
             element={
-              <PlaceholderPage
-                title="History"
-                body="CSV export and a longer reading table land in a later phase."
-              />
+              <Suspense fallback={<article className="panel-card"><Skeleton lines={4} /></article>}>
+                <HistoryPage />
+              </Suspense>
             }
           />
           <Route path="settings" element={<SettingsPage />} />

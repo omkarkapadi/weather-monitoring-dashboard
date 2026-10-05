@@ -124,7 +124,7 @@ describe("requireAdmin", () => {
 describe("getNavItems", () => {
   it("hides admin links for members and guests", () => {
     const paths = getNavItems("member").map((item) => item.to);
-    expect(paths).toEqual(["/app", "/app/history", "/app/settings"]);
+    expect(paths).toEqual(["/app", "/app/map", "/app/history", "/app/settings"]);
   });
 
   it("shows admin links only for the admin role", () => {

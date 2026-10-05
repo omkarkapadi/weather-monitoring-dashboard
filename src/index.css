@@ -371,6 +371,62 @@ button:disabled {
   background: var(--panel-2);
 }
 
+.place-map-explorer {
+  height: min(560px, 70vh);
+}
+
+.map-board,
+.map-card {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.radar-controls {
+  display: grid;
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
+}
+
+.radar-controls label {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.radar-summary,
+.map-popup {
+  margin-top: var(--space-4);
+}
+
+.history-range {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: var(--space-3);
+  align-items: end;
+  margin: var(--space-4) 0;
+}
+
+.history-range label {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.history-table-wrap {
+  overflow-x: auto;
+  margin: var(--space-4) 0;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.history-table th,
+.history-table td {
+  text-align: left;
+  padding: 0.7rem 0.4rem;
+  border-bottom: 1px solid var(--line);
+}
+
 .place-map.leaflet-container,
 .place-map .leaflet-container,
 .place-map .leaflet-pane,

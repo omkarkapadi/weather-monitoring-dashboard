@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { buildCsv } from "./csv.js";
+import { describe, expect, it, vi } from "vitest";
+import { buildCsv, csvFileName, downloadCsv } from "./csv.js";
 
 describe("buildCsv", () => {
   it("builds a CSV for the rows currently on screen", () => {
@@ -20,3 +20,35 @@ describe("buildCsv", () => {
     );
   });
 });
+
+describe("downloadCsv", () => {
+  it("names the file from the place and the shown range", () => {
+    expect(csvFileName("Kasba Peth, Pune", "2026-09-27", "2026-10-03")).toBe(
+      "weather-kasba-peth-pune-2026-09-27-to-2026-10-03.csv",
+    );
+  });
+
+  it("clicks a temporary download link for the shown CSV", () => {
+    const click = vi.fn();
+    const remove = vi.fn();
+    const link = { href: "", download: "", click, remove };
+    const documentRef = {
+      createElement: vi.fn(() => link),
+      body: { appendChild: vi.fn() },
+    };
+    const createObjectURL = vi.fn(() => "blob:history");
+    const revokeObjectURL = vi.fn();
+
+    downloadCsv("date,high\n2026-09-27,31", "weather.csv", {
+      createObjectURL,
+      revokeObjectURL,
+      documentRef,
+    });
+
+    expect(link.download).toBe("weather.csv");
+    expect(link.href).toBe("blob:history");
+    expect(click).toHaveBeenCalled();
+    expect(revokeObjectURL).toHaveBeenCalledWith("blob:history");
+  });
+});
+

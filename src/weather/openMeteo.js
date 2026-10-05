@@ -123,6 +123,19 @@ export function normalizeForecast(payload) {
   };
 }
 
+export function normalizeArchive(payload) {
+  const times = payload?.daily?.time || [];
+  return {
+    timezone: payload?.timezone || "UTC",
+    days: times.map((date, index) => ({
+      date,
+      high: payload.daily.temperature_2m_max?.[index],
+      low: payload.daily.temperature_2m_min?.[index],
+      precipitation: payload.daily.precipitation_sum?.[index],
+    })),
+  };
+}
+
 export function normalizeAirQuality(payload) {
   return {
     usAqi: payload?.current?.us_aqi,
