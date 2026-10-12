@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { buildSavedPlace, canAddSavedPlace, SAVED_PLACE_LIMIT, toActiveLocation } from "./savedPlaces.js";
+import {
+  buildSavedPlace,
+  canAddSavedPlace,
+  historyPlaceOptions,
+  SAVED_PLACE_LIMIT,
+  toActiveLocation,
+} from "./savedPlaces.js";
 
 describe("canAddSavedPlace", () => {
   it("caps saved places at 20", () => {
@@ -25,6 +31,21 @@ describe("toActiveLocation", () => {
       lat: 18.51,
       lon: 73.81,
     });
+  });
+});
+
+describe("historyPlaceOptions", () => {
+  it("lists home once, then other saved places", () => {
+    const home = { locationId: "18.52,73.86", label: "Pune", lat: 18.52, lon: 73.86 };
+    expect(
+      historyPlaceOptions(home, [
+        { id: "18.52,73.86", label: "Pune", lat: 18.52, lon: 73.86 },
+        { id: "18.51,73.81", label: "Kothrud", lat: 18.51, lon: 73.81 },
+      ]),
+    ).toEqual([
+      home,
+      { locationId: "18.51,73.81", label: "Kothrud", lat: 18.51, lon: 73.81 },
+    ]);
   });
 });
 

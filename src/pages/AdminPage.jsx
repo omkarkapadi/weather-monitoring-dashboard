@@ -1,10 +1,14 @@
 import { useState } from "react";
 import { Skeleton } from "../components/Skeleton.jsx";
+import { useAuthContext } from "../context/AuthContext.jsx";
 import { useAdminDirectory } from "../hooks/useAdminDirectory.js";
-import { validateApprovedEmailInput } from "../utils/accessControl.js";
+import { canChangeUserRole, normalizeEmail, validateApprovedEmailInput } from "../utils/accessControl.js";
 
 export function AdminPage() {
-  const { invites, users, status, error, adding, addInvite } = useAdminDirectory(true);
+  const { user } = useAuthContext();
+  const { invites, users, status, error, adding, addInvite, removeInvite, setUserRole } =
+    useAdminDirectory(true);
+  const actorEmail = user?.email;
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("member");
   const [formMessage, setFormMessage] = useState("");
@@ -16,7 +20,7 @@ export function AdminPage() {
       setFormMessage(check.message);
       return;
     }
-    const result = await addInvite(email, role);
+    const result = await addInvite(email, role, actorEmail);
     if (!result.ok) {
       setFormMessage(result.message);
       return;
@@ -64,7 +68,23 @@ export function AdminPage() {
             {invites.map((invite) => (
               <li key={invite.id}>
                 <strong>{invite.email || invite.id}</strong>
-                <span className="role-pill">{invite.role || "member"}</span>
+                <div className="admin-row-actions">
+                  <span className="role-pill">{invite.role || "member"}</span>
+                  {normalizeEmail(invite.email || invite.id) !== normalizeEmail(actorEmail) ? (
+                    <button
+                      type="button"
+                      className="secondary"
+                      onClick={async () => {
+                        const result = await removeInvite(invite.email || invite.id, actorEmail);
+                        if (!result.ok) {
+                          setFormMessage(result.message);
+                        }
+                      }}
+                    >
+                      Remove {invite.email || invite.id}
+                    </button>
+                  ) : null}
+                </div>
               </li>
             ))}
           </ul>
@@ -87,7 +107,31 @@ export function AdminPage() {
             {users.map((person) => (
               <li key={person.id}>
                 <strong>{person.email || person.id}</strong>
-                <span className="role-pill">{person.role || "member"}</span>
+                <div className="admin-row-actions">
+                  <span className="role-pill">{person.role || "member"}</span>
+                  {canChangeUserRole({
+                    actorUid: user?.uid,
+                    targetUid: person.id,
+                    nextRole: person.role === "admin" ? "member" : "admin",
+                    users,
+                  }).ok ? (
+                    <button
+                      type="button"
+                      className="secondary"
+                      onClick={() =>
+                        setUserRole(
+                          person.id,
+                          person.role === "admin" ? "member" : "admin",
+                          user?.uid,
+                        )
+                      }
+                    >
+                      {person.role === "admin"
+                        ? `Make ${person.email || person.id} member`
+                        : `Make ${person.email || person.id} admin`}
+                    </button>
+                  ) : null}
+                </div>
               </li>
             ))}
           </ul>

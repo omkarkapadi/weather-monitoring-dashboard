@@ -1,4 +1,11 @@
-export function SavedPlaceCards({ places, summaries = {}, loading = false, homeId, onSelect }) {
+export function SavedPlaceCards({
+  places,
+  summaries = {},
+  loading = false,
+  homeId,
+  onSelect,
+  onRemove,
+}) {
   if (!places?.length) {
     return null;
   }
@@ -17,6 +24,15 @@ export function SavedPlaceCards({ places, summaries = {}, loading = false, homeI
                 <strong>{summary.temperature || (loading ? "…" : "—")}</strong>
                 {isHome ? <span className="saved-place-home">Home</span> : null}
               </button>
+              {onRemove ? (
+                <button
+                  type="button"
+                  className="secondary saved-place-remove"
+                  onClick={() => onRemove(place)}
+                >
+                  Remove {place.label}
+                </button>
+              ) : null}
             </li>
           );
         })}

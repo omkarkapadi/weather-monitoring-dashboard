@@ -38,4 +38,16 @@ describe("Login", () => {
 
     expect(onRegister).toHaveBeenCalledWith("new@college.edu", "secret1");
   });
+
+  it("sends a password reset for the typed email", async () => {
+    const user = userEvent.setup();
+    const onResetPassword = vi.fn().mockResolvedValue({ ok: true });
+
+    render(<Login onLogin={vi.fn()} onRegister={vi.fn()} onResetPassword={onResetPassword} />);
+    await user.type(screen.getByLabelText(/email/i), "demo@college.edu");
+    await user.click(screen.getByRole("button", { name: /forgot password/i }));
+
+    expect(onResetPassword).toHaveBeenCalledWith("demo@college.edu");
+    expect(screen.getByText(/check your email/i)).toBeInTheDocument();
+  });
 });

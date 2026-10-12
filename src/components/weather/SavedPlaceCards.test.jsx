@@ -7,6 +7,7 @@ describe("SavedPlaceCards", () => {
   it("shows a temperature chip and marks the home place", async () => {
     const user = userEvent.setup();
     const onSelect = vi.fn();
+    const onRemove = vi.fn();
 
     render(
       <SavedPlaceCards
@@ -20,13 +21,21 @@ describe("SavedPlaceCards", () => {
           "18.51,73.81": { temperature: "29°" },
         }}
         onSelect={onSelect}
+        onRemove={onRemove}
       />,
     );
 
     expect(screen.getByText("30°")).toBeInTheDocument();
     expect(screen.getByText(/home/i)).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /kothrud/i }));
+    await user.click(screen.getByRole("button", { name: /^kothrud/i }));
     expect(onSelect).toHaveBeenCalledWith({
+      id: "18.51,73.81",
+      label: "Kothrud",
+      lat: 18.51,
+      lon: 73.81,
+    });
+    await user.click(screen.getByRole("button", { name: /remove kothrud/i }));
+    expect(onRemove).toHaveBeenCalledWith({
       id: "18.51,73.81",
       label: "Kothrud",
       lat: 18.51,

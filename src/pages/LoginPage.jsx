@@ -3,7 +3,7 @@ import { Login } from "../components/Login.jsx";
 import { useAuthContext } from "../context/AuthContext.jsx";
 
 export function LoginPage() {
-  const { login, register, error, pending } = useAuthContext();
+  const { login, register, resetPassword, error, pending } = useAuthContext();
 
   return (
     <main className="auth-shell">
@@ -11,7 +11,13 @@ export function LoginPage() {
         <Link className="back-link" to="/">
           Back to overview
         </Link>
-        <Login onLogin={login} onRegister={register} error={error} pending={pending} />
+        <Login
+          onLogin={login}
+          onRegister={register}
+          onResetPassword={resetPassword}
+          error={error}
+          pending={pending}
+        />
       </div>
     </main>
   );

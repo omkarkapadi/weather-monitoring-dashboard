@@ -149,7 +149,7 @@ describe("DashboardPage location selection", () => {
     const user = userEvent.setup();
     render(<DashboardPage />);
 
-    await user.click(screen.getByRole("button", { name: /kothrud/i }));
+    await user.click(screen.getByRole("button", { name: /^kothrud/i }));
     expect(document.querySelector(".place-card")).toHaveTextContent("Kothrud");
     expect(useWeather).toHaveBeenLastCalledWith(
       expect.objectContaining({ label: "Kothrud", lat: 18.51, lon: 73.81 }),

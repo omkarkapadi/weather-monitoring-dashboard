@@ -351,6 +351,13 @@ button:disabled {
   gap: 1.25rem;
 }
 
+.admin-row-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
 .invite-form,
 .settings-form {
   display: grid;
@@ -1088,12 +1095,22 @@ dd {
   padding: 0;
 }
 
+.saved-place-cards li {
+  display: grid;
+  gap: 0.35rem;
+}
+
 .saved-place-cards button {
   display: grid;
   gap: 0.2rem;
   width: 100%;
   text-align: left;
   background: color-mix(in srgb, var(--panel) 92%, transparent);
+}
+
+.saved-place-cards .saved-place-remove {
+  width: auto;
+  justify-self: start;
 }
 
 .saved-place-cards button.is-home {

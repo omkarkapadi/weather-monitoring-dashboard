@@ -8,8 +8,18 @@ const ingest = {
   error: "",
 };
 
+const readings = {
+  latest: null,
+  status: "empty",
+  error: "",
+};
+
 vi.mock("../hooks/useIngestStatus.js", () => ({
   useIngestStatus: () => ingest,
+}));
+
+vi.mock("../hooks/useReadings.js", () => ({
+  useReadings: () => readings,
 }));
 
 describe("StatusPage", () => {
@@ -23,6 +33,7 @@ describe("StatusPage", () => {
     expect(screen.getByText(/at most 10/i)).toBeInTheDocument();
     expect(screen.getByText(/not the live open-meteo desk/i)).toBeInTheDocument();
     expect(screen.getByText(/no ingest runs yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/actions → fetch weather/i)).toBeInTheDocument();
   });
 
   it("lists last success and last error for each city", () => {
@@ -48,5 +59,23 @@ describe("StatusPage", () => {
     expect(screen.getByText(/openweather request failed: 401/i)).toBeInTheDocument();
     expect(screen.getByText(/ok/i)).toBeInTheDocument();
     expect(screen.getByText(/error/i)).toBeInTheDocument();
+  });
+
+  it("shows the latest stored OpenWeather snapshot when ingest has run", () => {
+    ingest.rows = [
+      { id: "pune", city: "Pune", lastSuccessAt: new Date("2026-10-12T04:00:00.000Z"), lastError: null },
+    ];
+    readings.latest = {
+      city: "Pune",
+      temperature: 26,
+      humidity: 70,
+      windSpeed: 1.5,
+      condition: "light rain",
+      fetchedAt: new Date("2026-10-12T04:00:00.000Z"),
+    };
+    readings.status = "ready";
+    render(<StatusPage />);
+    expect(screen.getByText(/light rain/i)).toBeInTheDocument();
+    expect(screen.getByText("26°C")).toBeInTheDocument();
   });
 });

@@ -64,6 +64,14 @@ export function DashboardPage() {
     setToast({ message: "Home location saved.", tone: "info" });
   }
 
+  async function removeSaved(place) {
+    const result = await saved.removePlace(place.id);
+    setToast({
+      message: result?.ok ? "Place removed." : result?.message || "Could not remove that place.",
+      tone: result?.ok ? "info" : "error",
+    });
+  }
+
   async function savePlace() {
     const result = await saved.addPlace(location);
     if (!result?.ok) {
@@ -161,6 +169,7 @@ export function DashboardPage() {
           loading={placeTemps.status === "loading"}
           homeId={home.locationId}
           onSelect={(place) => selectLocation(toActiveLocation(place))}
+          onRemove={removeSaved}
         />
       </div>
 

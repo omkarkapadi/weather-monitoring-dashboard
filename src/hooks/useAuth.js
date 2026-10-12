@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   createUserWithEmailAndPassword,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
 } from "firebase/auth";
@@ -54,5 +55,18 @@ export function useAuth() {
         );
       }),
     logout: () => run(() => signOut(getFirebaseAuth())),
+    resetPassword: async (email) => {
+      setError("");
+      setPending(true);
+      try {
+        await sendPasswordResetEmail(getFirebaseAuth(), normalizeEmail(email));
+        return { ok: true };
+      } catch (err) {
+        setError(mapAuthError(err));
+        return { ok: false };
+      } finally {
+        setPending(false);
+      }
+    },
   };
 }

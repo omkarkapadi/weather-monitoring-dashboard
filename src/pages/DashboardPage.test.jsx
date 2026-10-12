@@ -50,6 +50,7 @@ const useWeather = vi.fn((location) => ({
 
 const updateProfile = vi.fn().mockResolvedValue({ ok: true });
 const addPlace = vi.fn().mockResolvedValue({ ok: true, id: "18.51,73.81" });
+const removePlace = vi.fn().mockResolvedValue({ ok: true });
 
 vi.mock("../context/AuthContext.jsx", () => ({
   useAuthContext: () => ({
@@ -70,6 +71,7 @@ vi.mock("../hooks/useSavedPlaces.js", () => ({
     status: "ready",
     error: "",
     addPlace,
+    removePlace,
   }),
 }));
 
@@ -166,11 +168,14 @@ describe("DashboardPage", () => {
       lon: 72.88,
     });
 
-    await user.click(screen.getByRole("button", { name: /kothrud/i }));
+    await user.click(screen.getByRole("button", { name: /^kothrud/i }));
     expect(useWeather).toHaveBeenLastCalledWith(
       expect.objectContaining({ label: "Kothrud" }),
       expect.objectContaining({ enabled: true }),
     );
+
+    await user.click(screen.getByRole("button", { name: /remove kothrud/i }));
+    expect(removePlace).toHaveBeenCalledWith("18.51,73.81");
   });
 
   it("shows a toast when saving a place is denied", async () => {

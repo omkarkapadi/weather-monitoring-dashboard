@@ -1,9 +1,13 @@
+import { CurrentWeather } from "../components/CurrentWeather.jsx";
 import { Skeleton } from "../components/Skeleton.jsx";
 import { useIngestStatus } from "../hooks/useIngestStatus.js";
+import { useReadings } from "../hooks/useReadings.js";
 import { formatIngestTime, ingestHealth } from "../utils/ingestStatus.js";
 
 export function StatusPage() {
   const { rows, status, error } = useIngestStatus(true);
+  const city = rows[0]?.city || "Pune";
+  const readings = useReadings(rows.length > 0, city);
 
   return (
     <section className="admin-grid">
@@ -21,8 +25,12 @@ export function StatusPage() {
           </p>
         ) : null}
         {status === "ready" && rows.length === 0 ? (
-          <p className="empty">No ingest runs yet.</p>
+          <p className="empty">
+            No ingest runs yet. In GitHub open Actions → Fetch weather → Run workflow. That needs
+            OPENWEATHER_API_KEY and the Firebase service account secret.
+          </p>
         ) : null}
+        {readings.latest ? <CurrentWeather reading={readings.latest} /> : null}
         {rows.length > 0 ? (
           <ul className="data-list">
             {rows.map((row) => (

@@ -1,9 +1,10 @@
 import { useState } from "react";
 
-export function Login({ onLogin, onRegister, error, pending }) {
+export function Login({ onLogin, onRegister, onResetPassword, error, pending }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [localError, setLocalError] = useState("");
+  const [resetMessage, setResetMessage] = useState("");
 
   function validate() {
     if (!email.trim() || !password) {
@@ -27,6 +28,19 @@ export function Login({ onLogin, onRegister, error, pending }) {
       return;
     }
     await onRegister(email.trim(), password);
+  }
+
+  async function handleReset() {
+    if (!email.trim()) {
+      setResetMessage("");
+      setLocalError("Enter an email address to reset your password.");
+      return;
+    }
+    setLocalError("");
+    const result = await onResetPassword?.(email.trim());
+    if (result?.ok) {
+      setResetMessage("Check your email for a reset link.");
+    }
   }
 
   const message = localError || error;
@@ -63,12 +77,16 @@ export function Login({ onLogin, onRegister, error, pending }) {
             {message}
           </p>
         ) : null}
+        {resetMessage ? <p className="banner">{resetMessage}</p> : null}
         <div className="auth-actions">
           <button type="submit" disabled={pending}>
             {pending ? "Working…" : "Log in"}
           </button>
           <button type="button" className="secondary" disabled={pending} onClick={handleRegister}>
             Create account
+          </button>
+          <button type="button" className="secondary" disabled={pending} onClick={handleReset}>
+            Forgot password
           </button>
         </div>
       </form>

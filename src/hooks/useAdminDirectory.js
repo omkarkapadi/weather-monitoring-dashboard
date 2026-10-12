@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
-import { collection, doc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
+import { collection, deleteDoc, doc, onSnapshot, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
 import { getFirebaseDb } from "../firebase.js";
-import { validateApprovedEmailInput } from "../utils/accessControl.js";
+import {
+  canChangeUserRole,
+  canRevokeInvite,
+  matchingProfileIds,
+  normalizeEmail,
+  validateApprovedEmailInput,
+} from "../utils/accessControl.js";
 
 function mapDocs(snapshot) {
   return snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
@@ -19,6 +25,13 @@ export async function submitApprovedEmail(setInviteDoc, email, role = "member") 
     addedAt: new Date(),
   });
   return { ok: true, email: check.email };
+}
+
+export async function promoteProfilesByEmail(updateProfileDoc, users, email, role) {
+  const ids = matchingProfileIds(users, email);
+  const nextRole = role === "admin" ? "admin" : "member";
+  await Promise.all(ids.map((id) => updateProfileDoc(id, { role: nextRole })));
+  return ids;
 }
 
 export function useAdminDirectory(enabled) {
@@ -81,7 +94,7 @@ export function useAdminDirectory(enabled) {
     };
   }, [enabled]);
 
-  async function addInvite(email, role) {
+  async function addInvite(email, role, actorEmail) {
     const check = validateApprovedEmailInput(email);
     if (!check.ok) {
       return check;
@@ -94,6 +107,14 @@ export function useAdminDirectory(enabled) {
         role: role === "admin" ? "admin" : "member",
         addedAt: serverTimestamp(),
       });
+      if (!(normalizeEmail(actorEmail) === check.email && role !== "admin")) {
+        await promoteProfilesByEmail(
+          (id, data) => updateDoc(doc(getFirebaseDb(), "userProfiles", id), data),
+          users,
+          check.email,
+          role,
+        );
+      }
       return { ok: true, email: check.email };
     } catch {
       return { ok: false, message: "Could not add that email. Confirm you are an admin." };
@@ -102,5 +123,38 @@ export function useAdminDirectory(enabled) {
     }
   }
 
-  return { invites, users, status, error, adding, addInvite };
+  async function removeInvite(email, actorEmail) {
+    const check = canRevokeInvite(email, actorEmail);
+    if (!check.ok) {
+      return check;
+    }
+    try {
+      await deleteDoc(doc(getFirebaseDb(), "approvedEmails", check.email));
+      return { ok: true, email: check.email };
+    } catch {
+      return { ok: false, message: "Could not remove that email. Confirm you are an admin." };
+    }
+  }
+
+  async function setUserRole(uid, role, actorUid) {
+    const check = canChangeUserRole({
+      actorUid,
+      targetUid: uid,
+      nextRole: role === "admin" ? "admin" : "member",
+      users,
+    });
+    if (!check.ok) {
+      return check;
+    }
+    try {
+      await updateDoc(doc(getFirebaseDb(), "userProfiles", uid), {
+        role: role === "admin" ? "admin" : "member",
+      });
+      return { ok: true, uid };
+    } catch {
+      return { ok: false, message: "Could not change that role. Confirm you are an admin." };
+    }
+  }
+
+  return { invites, users, status, error, adding, addInvite, removeInvite, setUserRole };
 }
