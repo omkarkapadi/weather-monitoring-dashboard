@@ -1,3 +1,5 @@
+export const INGEST_CITY_CAP = 10;
+
 export function cityDocId(city) {
   return String(city || "")
     .trim()
@@ -5,10 +7,18 @@ export function cityDocId(city) {
     .replace(/\s+/g, "-");
 }
 
+export function profileIngestCity(profile) {
+  const fromLocation = String(profile?.preferredLocation?.label || "").trim();
+  if (fromLocation) {
+    return fromLocation;
+  }
+  return String(profile?.preferredCity || "").trim();
+}
+
 export function listDistinctCities(profiles, fallback = "Pune") {
   const cities = new Set();
   for (const profile of profiles || []) {
-    const city = String(profile?.preferredCity || "").trim();
+    const city = profileIngestCity(profile);
     if (city) {
       cities.add(city);
     }
@@ -16,5 +26,5 @@ export function listDistinctCities(profiles, fallback = "Pune") {
   if (cities.size === 0 && fallback) {
     cities.add(fallback);
   }
-  return [...cities].sort((left, right) => left.localeCompare(right));
+  return [...cities].sort((left, right) => left.localeCompare(right)).slice(0, INGEST_CITY_CAP);
 }

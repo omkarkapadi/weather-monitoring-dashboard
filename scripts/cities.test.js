@@ -21,6 +21,46 @@ describe("listDistinctCities", () => {
   it("ignores the fallback city when profiles already have preferred cities", () => {
     expect(listDistinctCities([{ preferredCity: "Mumbai" }], "Pune")).toEqual(["Mumbai"]);
   });
+
+  it("prefers the home pin label over the legacy preferred city", () => {
+    expect(
+      listDistinctCities([
+        {
+          preferredCity: "Mumbai",
+          preferredLocation: { label: "Kasba Peth, Pune" },
+        },
+      ]),
+    ).toEqual(["Kasba Peth, Pune"]);
+  });
+
+  it("caps unique ingest cities at 10 in alphabetical order", () => {
+    const profiles = [
+      "Ahmedabad",
+      "Bengaluru",
+      "Chennai",
+      "Delhi",
+      "Hyderabad",
+      "Jaipur",
+      "Kolkata",
+      "Lucknow",
+      "Mumbai",
+      "Nagpur",
+      "Pune",
+    ].map((label) => ({ preferredLocation: { label } }));
+
+    expect(listDistinctCities(profiles)).toEqual([
+      "Ahmedabad",
+      "Bengaluru",
+      "Chennai",
+      "Delhi",
+      "Hyderabad",
+      "Jaipur",
+      "Kolkata",
+      "Lucknow",
+      "Mumbai",
+      "Nagpur",
+    ]);
+  });
 });
 
 describe("cityDocId", () => {

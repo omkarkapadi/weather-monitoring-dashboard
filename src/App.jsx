@@ -10,8 +10,8 @@ import { DashboardPage } from "./pages/DashboardPage.jsx";
 import { LandingPage } from "./pages/LandingPage.jsx";
 import { LoginPage } from "./pages/LoginPage.jsx";
 import { AdminPage } from "./pages/AdminPage.jsx";
-import { PlaceholderPage } from "./pages/PlaceholderPage.jsx";
 import { NotApprovedPage } from "./pages/NotApprovedPage.jsx";
+import { StatusPage } from "./pages/StatusPage.jsx";
 import { SettingsPage } from "./pages/SettingsPage.jsx";
 
 const MapPage = lazy(() => import("./pages/MapPage.jsx"));
@@ -69,10 +69,7 @@ export default function App() {
             path="admin/status"
             element={
               <AdminRoute>
-                <PlaceholderPage
-                  title="System status"
-                  body="Ingest monitoring lands in Phase 13."
-                />
+                <StatusPage />
               </AdminRoute>
             }
           />

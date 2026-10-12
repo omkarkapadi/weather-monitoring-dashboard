@@ -93,9 +93,13 @@ History uses the Open-Meteo **archive** API for the **home** place. Default rang
 
 Map, History, and charts stay on `lazy()` routes. The 500 kB warning is the main Firebase + React chunk. That is expected on Spark with the official web SDK.
 
+## Scheduled ingest (admin Status)
+
+GitHub Actions still run `scripts/fetchWeather.js` every 15 minutes (OpenWeather → `readings` + `ingestStatus`). The job reads home-pin labels (or legacy `preferredCity`) and fetches **at most 10** distinct names so Spark writes stay bounded. `/app/admin/status` shows last success / last error. The dashboard does **not** wait on this job.
+
 ## Likely viva questions
 
-1. **Why no Cloud Functions?** Spark plan; scheduled ingest would need Blaze or GitHub Actions.
+1. **Why no Cloud Functions?** Spark plan; scheduled ingest uses GitHub Actions instead.
 2. **Why not store every forecast in Firestore?** Quota and cost. Cache in the browser; persist only profile + saved pins.
 3. **Is Open-Meteo “your” data?** No. We attribute CC BY 4.0.
 4. **How do you stop a classmate creating an account?** They can register in Auth, but rules and `RequireAuth` send unapproved emails to `/not-approved`.

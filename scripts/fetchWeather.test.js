@@ -299,4 +299,68 @@ describe("runIngest", () => {
     vi.doUnmock("firebase-admin/app");
     vi.doUnmock("firebase-admin/firestore");
   });
+
+  it("fetches at most 10 distinct home places", async () => {
+    const labels = [
+      "Ahmedabad",
+      "Bengaluru",
+      "Chennai",
+      "Delhi",
+      "Hyderabad",
+      "Jaipur",
+      "Kolkata",
+      "Lucknow",
+      "Mumbai",
+      "Nagpur",
+      "Pune",
+    ];
+    const add = vi.fn().mockResolvedValue({ id: "doc-cap" });
+    vi.resetModules();
+    vi.doMock("firebase-admin/app", () => ({
+      cert: (value) => value,
+      initializeApp: vi.fn(() => ({ name: "admin-cap" })),
+    }));
+    vi.doMock("firebase-admin/firestore", () => ({
+      getFirestore: () => ({
+        collection: (name) => {
+          if (name === "userProfiles") {
+            return {
+              get: async () => ({
+                docs: labels.map((label) => ({
+                  data: () => ({ preferredLocation: { label } }),
+                })),
+              }),
+            };
+          }
+          if (name === "ingestStatus") {
+            return { doc: () => ({ set: vi.fn().mockResolvedValue() }) };
+          }
+          return { add };
+        },
+      }),
+    }));
+
+    const { runIngest: runIngestFresh } = await import("./fetchWeather.js");
+    const fetchFn = vi.fn().mockImplementation(async (url) => ({
+      ok: true,
+      json: async () => ({
+        ...openWeatherPayload,
+        name: decodeURIComponent(url.split("q=")[1].split("&")[0]),
+      }),
+    }));
+
+    const stored = await runIngestFresh(
+      {
+        GOOGLE_APPLICATION_CREDENTIALS_JSON: '{"client_email":"sa@demo.iam"}',
+        OPENWEATHER_API_KEY: "test-weather-key",
+      },
+      fetchFn,
+    );
+
+    expect(stored).toHaveLength(10);
+    expect(stored.map((reading) => reading.city)).not.toContain("Pune");
+    expect(fetchFn).toHaveBeenCalledTimes(10);
+    vi.doUnmock("firebase-admin/app");
+    vi.doUnmock("firebase-admin/firestore");
+  });
 });

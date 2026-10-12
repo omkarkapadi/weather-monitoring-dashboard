@@ -43,6 +43,8 @@ Client alerts (heat, cold, storm, AQI) are computed in the browser. They are **n
 | `src/weather/notifyAlerts.js` | Once-per-id Notification helper. |
 | `firestore.rules` | Invite list + role lock. Members cannot change their own `role`. |
 | `scripts/seedAdmin.js` | Approves `omkar.kapadi@mitwpu.edu.in` and promotes that profile to admin. |
+| `scripts/fetchWeather.js` | Optional GitHub Action: OpenWeather → `readings`, cap 10 home places. |
+| `src/pages/StatusPage.jsx` | Admin view of `ingestStatus` last success / last error. |
 
 ## Local setup
 
