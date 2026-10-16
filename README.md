@@ -62,7 +62,7 @@ Open http://localhost:5173. **Create account only works for emails in `approvedE
 
 Do not put a weather API key or a Firebase service account in `.env` or the React bundle. Open-Meteo and RainViewer are keyless. Admin scripts use GitHub Actions secrets.
 
-## Commands you run (not the coding agent)
+## Commands you run
 
 ```bash
 npm install -g firebase-tools
